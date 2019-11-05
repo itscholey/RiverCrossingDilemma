@@ -30,7 +30,7 @@ public class WeightsParser {
 	 * @param cols1 The number of columns of the first weights array.
 	 * @param rows2 The number of rows of the second weights array.
 	 * @param cols2 The number of columns of the second weights array.
-	 * @return
+	 * @return A collection of the parsed weights, arranged in a 3D array for each member of the population in the file.
 	 */
 	public ArrayList<double[][][]> toArray(String filename, int rows1, int cols1, int rows2, int cols2) {
 		double[][] weights1 = new double[rows1][cols1];

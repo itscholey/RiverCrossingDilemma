@@ -20,7 +20,7 @@
   </build>
   <dependencies>
   	<dependency>
-  		<groupId>org.jfree</groupId>
+  		<groupId>org.jfree</groupId> 
   		<artifactId>jcommon</artifactId>
   		<version>1.0.23</version>
   	</dependency>
