@@ -301,30 +301,8 @@ public class Engine {
 			Double[][] tournamentFitness = new Double[POPULATION_NUMBER][TOURNAMENT_SIZE];
 			int[][] indexes = new int[POPULATION_NUMBER][TOURNAMENT_SIZE];
 			// set up the tournament
-			for (int t = 0; t < TOURNAMENT_SIZE; t++) {
-				// tournament selection
-				for (int i = 0; i < POPULATION_NUMBER; i++) {
-					indexes[i][t] = random.nextInt(POPULATION_SIZE-t);
-				}
-			}
-			
-			for (int t = 0; t < TOURNAMENT_SIZE; t++) {
+			 for (int t = 0; t < TOURNAMENT_SIZE; t++) {
 				Agent[] tnmt = new Agent[POPULATION_NUMBER];
-				for (int pop = 0; pop < POPULATION_NUMBER; pop++) {
-					tournament[pop][t] = agents.get(pop).get(indexes[pop][t]);
-					tnmt[pop] = tournament[pop][t];
-				}
-				// loop and evaluate
-				loop(tnmt, false);
-				for (int pop = 0; pop < POPULATION_NUMBER; pop++) {
-					tournamentFitness[pop][t] = tournament[pop][t].evaluate(TIME_STEPS);
-					fitnesses[pop][indexes[pop][t]] = tournamentFitness[pop][t];
-				}
-			}
-			
-			// set up the tournament - more efficient, otherwise will change randomness
-			/* for (int t = 0; t < TOURNAMENT_SIZE; t++) {
-				Agent[] tnmt = new Agent[TOURNAMENT_SIZE];
 				// tournament selection
 				for (int pop = 0; pop < POPULATION_NUMBER; pop++) {
 					indexes[pop][t] = random.nextInt(POPULATION_SIZE-t);
@@ -338,8 +316,8 @@ public class Engine {
 					tournamentFitness[pop][t] = tournament[pop][t].evaluate(TIME_STEPS);
 					fitnesses[pop][indexes[pop][t]] = tournamentFitness[pop][t];
 				}
-			} */
-			
+			}
+
 			int[] worstIndex = new int[POPULATION_NUMBER];
 			for (int p = 0; p < POPULATION_NUMBER; p++) {
 				currentBest[p] = findBestParent(tournament[p]);
