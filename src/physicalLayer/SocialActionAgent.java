@@ -196,4 +196,8 @@ public class SocialActionAgent extends Agent {
 		}			
 		return grid;
 	}
+	
+	public String toString() {
+		return decisionNetwork.toString();
+	}
 }

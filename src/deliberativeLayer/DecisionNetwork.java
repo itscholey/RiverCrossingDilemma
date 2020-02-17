@@ -46,175 +46,117 @@ import engine.Engine;
  * @version v1.2
  */
 public class DecisionNetwork {
-	/** The number of inputs for the DecisionNetwork. */
-	private static int	inputLayerSize 	= 6;
-	/** The number units in the hidden layer for the DecisionNetwork. */
-	private static int  hiddenLayerSize = 4;
-	/** The number of outputs that the DecisionNetwork will generate. */
-	private static int	outputLayerSize = 3;
 
-	/** The input data to initialise the DecisionNetwork (only used for testing). */
-	private double[] 	inputData;
-	/** The generated output data. */
-	private double[]	outputData;
-	/** The expected output data used to compare actual results to expected results (only used for testing). */
-	private double[] 	expectedOutputData;
-
-	/** 
-	 * <p>A double array containing the weights for the first layer of the DecisionNetwork.</p>
-	 * <p>The number of rows equals the number of hidden units, and the columns equals the number of inputs. </p>
-	 * <p><code>double[hiddenUnits][inputs]</code></p>
-	 */
-	private double[][]  weights1;
+	/** An array that dictates the structure of the network, where each element contains the number of neurons in each layer sequentially.
+	 * The first element dictates the number of inputs, and the last element dictates the number of outputs. All other elements dictate the 
+	 * number of hidden layers and the number of neurons they hold respectively. TODO*/
+	private static int[] numberOfNeurons = {6,4,7,5,3};
 	
-	/** 
-	 * <p>A double array containing the weights for the second layer of the DecisionNetwork.</p>
-	 * <p>The number of rows equals the number of outputs, and the columns equals the number of hidden units.</p>
-	 * <p><code>double[outputs][hiddenUnits]</code></p>
+	/** The generated output data. TODO */
+	private double[]	outputData;
+	
+	/** TODO
+	 * <p>A double array containing the weights of the DecisionNetwork.</p>
+	 * <p>The number of rows equals the number of neurons in the preceding layer, and the columns equals the 
+	 * number of neurons in the connecting layer.</p>
 	 */
-	private double[][]  weights2;
+	private double[][][] weights;
 
 	/** The rate in which the DecisionNetwork weights will mutate at each generation. */
 	private static final double MUTATION_RATE  = 0.01;
 	/** The rate in which the DecisionNetwork will crossover between parents at each generation; otherwise inherits from one parent. */
 	private static final double CROSSOVER_RATE = 0.05; 
 
-	/**
-	 * Creates a new DecisionNetwork with the default {@link #inputLayerSize}, {@link #hiddenLayerSize} and {@link #outputLayerSize}, 
+	/** TODO
+	 * Creates a new DecisionNetwork with the default structure specified with <code>numberOfNeurons</code>, 
 	 * with weights randomly initialised between -1 and 1.
 	 */
 	public DecisionNetwork() {
-		inputData = new double[inputLayerSize];
-		outputData = new double[outputLayerSize];	
-
-		weights1 = new double[inputLayerSize][hiddenLayerSize]; 	// 6 / 4
-		weights2 = new double[hiddenLayerSize][outputLayerSize];	// 4 / 3
-
-		weights1 = randomiseWeights(weights1, true);
-		weights2 = randomiseWeights(weights2, true);
+		
+		weights = new double[numberOfNeurons.length-1][][];
+		
+		for(int i = 1; i < numberOfNeurons.length; i++) {
+			weights[i-1] = new double[numberOfNeurons[i-1]][numberOfNeurons[i]];
+			weights[i-1] = randomiseWeights(weights[i-1], true);
+		}
 	}
 
 	/**
 	 * <p>Creates a new DecisionNetwork populated using given weights.</p>
 	 * <p><code>double[][rows][cols]</code>,</p>
 	 * <p>where <code>double[0]</code> contains {@link #weights1} and <code>double[1]</code> {@link #weights2}.</p>
-	 * 
+	 * TODO
 	 * @param weights A 3D array containing the weights in which to populate the new DecisionNetwork.
 	 */
-	public DecisionNetwork(double[][][] weights) {
-		weights1 = weights[0];
-		weights2 = weights[1];
+	public DecisionNetwork(double[][][] w) {
+		weights = w;
 	}
 
 	/**
 	 * <p>Creates the weights for a new offspring with the current DecisionNetwork as one parent, and the weights passed in as another parent.</p>
 	 * <p><code>double[][rows][cols]</code>,</p>
 	 * <p>where <code>double[0]</code> contains {@link #weights1} and <code>double[1]</code> {@link #weights2}.</p>
-	 * 
+	 * TODO
 	 * @param other The weights of the other parent DecisionNetwork.
 	 * @return The new weights of an offspring generated from both parents.
 	 */
 	public double[][][] createOffspring(double[][][] other) {
-		// variables to contain the new offspring's weights
-		double[][] offspring1 = new double[inputLayerSize][hiddenLayerSize];
-		double[][] offspring2 = new double[hiddenLayerSize][outputLayerSize];
-
-		// generate weights for first layer
-			// here, weights1[0].length = cols = hiddenLayerSize = 4 (input connections for each hidden neuron)
-		for (int col = 0; col < weights1[0].length; col++) {
-			double probInheritFromOne = Engine.random.nextDouble();
-			if (probInheritFromOne > CROSSOVER_RATE) {
-				// inherit from a random parent
-				if (Engine.random.nextBoolean()) {
-					for (int row = 0; row < weights1.length; row++) {
-						offspring1[row][col] = weights1[row][col];
-					}
-				}
-				else {
-					for (int row = 0; row < other[0].length; row++) {
-						offspring1[row][col] = other[0][row][col];
-					}
-				}
-			}
-			else { 
-				// single point crossover
-				int point = Engine.random.nextInt(weights1.length);
-				boolean firstParent = Engine.random.nextBoolean();
-
-				for (int row = 0; row < weights1.length; row++) {
-					if (row < point) {
-						if (firstParent) {
-							offspring1[row][col] = weights1[row][col];
-						}
-						else {
-							offspring1[row][col] = other[0][row][col];
-						}
-					}
-					else {
-						if (!firstParent) {
-							offspring1[row][col] = weights1[row][col];
-						}
-						else {
-							offspring1[row][col] = other[0][row][col];
-						}
-					}
-				}
-			}
-			
-			// mutate all weights
-			for (int w = 0; w < weights1.length; w++) {
-				offspring1[w][col] = offspring1[w][col] + (Engine.random.nextGaussian() * MUTATION_RATE);
-			} 
-		}
-
-		// generate weights for second layer
-			// here, weights2[0].length = cols = outputLayerSize = 3 (input connections for each output neuron)
-		for (int col = 0; col < weights2[0].length; col++) {
-			double probInheritFromOne = Engine.random.nextDouble();
-			if (probInheritFromOne > CROSSOVER_RATE) {
-				// inherit from a random parent
-				if (Engine.random.nextBoolean()) {
-					for (int row = 0; row < weights2.length; row++) {
-						offspring2[row][col] = weights2[row][col];
-					}
-				}
-				else {
-					for (int row = 0; row < other[1].length; row++) {
-						offspring2[row][col] = other[1][row][col];
-					}
-				}
-			}
-			else { 
-				// single point crossover
-				int point = Engine.random.nextInt(weights2.length);
-				boolean firstParent = Engine.random.nextBoolean();
-				for (int row = 0; row < weights2.length; row++) {
-					if (row < point) {
-						if (firstParent) {
-							offspring2[row][col] = weights2[row][col];
-						}
-						else {
-							offspring2[row][col] = other[1][row][col];
-						}
-					}
-					else {
-						if (!firstParent) {
-							offspring2[row][col] = weights2[row][col];
-						}
-						else {
-							offspring2[row][col] = other[1][row][col];
-						}
-					}
-				}
-			}
-
-			// mutate all weights
-			for (int w = 0; w < weights2.length; w++) {					 
-				offspring2[w][col] = offspring2[w][col] + (Engine.random.nextGaussian() * MUTATION_RATE);
-			} 
+		// variable to contain the new offspring's weights
+		double[][][] offspring = new double[numberOfNeurons.length-1][][];
+		for(int i = 1; i < numberOfNeurons.length; i++) {
+			offspring[i-1] = new double[numberOfNeurons[i-1]][numberOfNeurons[i]];
 		}
 		
-		return new double[][][] {offspring1, offspring2};
+		for (int layer = 0; layer < weights.length; layer++) {
+			for (int col = 0; col < weights[layer][0].length; col++) {
+			
+				double probInheritFromOne = Engine.random.nextDouble();
+				if (probInheritFromOne > CROSSOVER_RATE) {
+					// inherit from a random parent
+					if (Engine.random.nextBoolean()) {
+						for (int row = 0; row < weights[layer].length; row++) {
+							offspring[layer][row][col] = weights[layer][row][col];
+						}
+					}
+					else {
+						for (int row = 0; row < other[layer].length; row++) {
+							offspring[layer][row][col] = other[layer][row][col];
+						}
+					}
+				}
+				else { 
+					// single point crossover
+					int point = Engine.random.nextInt(weights[layer].length);
+					boolean firstParent = Engine.random.nextBoolean();
+
+					for (int row = 0; row < weights[layer].length; row++) {
+						if (row < point) {
+							if (firstParent) {
+								offspring[layer][row][col] = weights[layer][row][col];
+							}
+							else {
+								offspring[layer][row][col] = other[layer][row][col];
+							}
+						}
+						else {
+							if (!firstParent) {
+								offspring[layer][row][col] = weights[layer][row][col];
+							}
+							else {
+								offspring[layer][row][col] = other[layer][row][col];
+							}
+						}
+					}
+				}
+				
+				// mutate all weights
+				for (int w = 0; w < weights[layer].length; w++) {
+					offspring[layer][w][col] = offspring[layer][w][col] + (Engine.random.nextGaussian() * MUTATION_RATE);
+				} 
+			}
+		}
+		
+		return offspring;
 	}
 
 
@@ -222,11 +164,11 @@ public class DecisionNetwork {
 	 * <p>Returns the genes of the DecisionNetwork in the format of a 3D array.</p>
 	 * <p><code>double[][rows][cols]</code>,</p>
 	 * <p>where <code>double[0]</code> contains {@link #weights1} and <code>double[1]</code> {@link #weights2}.</p> 
-	 * 
+	 * TODO
 	 * @return A 3D array containing the weights of the DecisionNetwork.
 	 */
 	public double[][][] getGenes() {
-		return new double[][][] {weights1, weights2};
+		return weights;
 	}
 
 	/**
@@ -237,8 +179,7 @@ public class DecisionNetwork {
 	 * @param genes A 3D array containing the weights that the DecisionNetwork will use.
 	 */
 	public void setGenes(double[][][] genes) {
-		weights1 = genes[0];
-		weights2 = genes[1];
+		weights = genes; // TODO copy
 	}
 
 	/**
@@ -252,7 +193,7 @@ public class DecisionNetwork {
 
 	/**
 	 * Generates output values by performing forward propagation based on the given input values, using the {@link #hyperbolicTangent(double[][])} activation function.
-	 * 
+	 * TODO
 	 * @param input A double array containing the input values for the calculations.
 	 * @return A double array containing the output values, based on the input values, after forward propagation through the DecisionNetwork.
 	 */
@@ -260,13 +201,17 @@ public class DecisionNetwork {
 		// the output array: this will end up as double[outputLayerSize][1] (i.e. one row)
 		double[][] yHat;
 		// get first activation value
-		double[][] z2 = matrixMult(new double[][] {input}, weights1);
-		// apply activation function
-		double[][] a2 = hyperbolicTangent(z2);
-		// get second activation value
-		double[][] z3 = matrixMult(a2, weights2);
+		double[][] z = matrixMult(new double[][] {input}, weights[0]);
+		double[][] a;
+		
+		for (int i = 1; i < weights.length; i++) {
+			// apply activation function
+			a = hyperbolicTangent(z);
+			// get activation value
+			z = matrixMult(a, weights[i]);
+		}
 		// apply final activation function to get predicted output
-		yHat = hyperbolicTangent(z3); 
+		yHat = hyperbolicTangent(z); 
 		// applying the activation function returns a single row
 		return yHat[0];
 	}
@@ -323,7 +268,7 @@ public class DecisionNetwork {
 	 * @return {@link #inputLayerSize}
 	 */
 	public int getInputSize() {
-		return inputLayerSize;
+		return numberOfNeurons[0];
 	}
 
 	/**
@@ -331,7 +276,7 @@ public class DecisionNetwork {
 	 * @return {@link #outputLayerSize}
 	 */
 	public int getOutputSize() {
-		return outputLayerSize;
+		return numberOfNeurons[numberOfNeurons.length-1];
 	}
 
 	/**
@@ -383,7 +328,7 @@ public class DecisionNetwork {
 	 * @return A single set of weights in a 3D array, which are a representative/traditional state correlating to the collective population.
 	 */
 	public static double[][][] getCommonGenes(ArrayList<double[][][]> genes) {
-		double[][][] results = {new double[inputLayerSize][hiddenLayerSize], new double[hiddenLayerSize][outputLayerSize]};
+		double[][][] results = new double[numberOfNeurons.length][][];
 		
 		for (int w = 0; w < genes.get(0).length; w++) {
 			for (int row = 0; row < genes.get(0)[w].length; row++) {
@@ -398,6 +343,19 @@ public class DecisionNetwork {
 			}
 		}
 		return results;
+	}
+	
+	// TODO UPDATE
+	public String toString() {
+		String result = "";
+		
+		for (int i = 0; i < weights.length; i++) {
+			result += "W" + i + ":\n";
+			for (int j = 0; j < weights[i].length; j++) {
+				result += Arrays.toString(weights[i][j]) + "\n";
+			}
+		}
+		return result; 
 	}
 	
 }
