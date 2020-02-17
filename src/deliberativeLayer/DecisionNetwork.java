@@ -1,6 +1,8 @@
 package deliberativeLayer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
+
 import engine.Engine;
 
 /**
@@ -21,20 +23,24 @@ import engine.Engine;
  * 
  * weights1: 
  * 
- * h        input
- * i { [ x x x x x x ],
- * d   [ x x x x x x ],
- * d   [ x x x x x x ],
- * e   [ x x x x x x ]  }  each row is the incoming connections from the previous layer
- * n
+ *     h i d d e n
+ *   { [ x x x x ],
+ * i   [ x x x x ],
+ * n   [ x x x x ],
+ * p   [ x x x x ],
+ * u   [ x x x x ],
+ * t   [ x x x x ]  }  each row is the incoming connections from one neuron in the previous layer to one in the next
+ * 
  * 
  * 
  * weights2:
  * 
- *       hidden
- * o { [ x x x x ],
- * u   [ x x x x ],
- * t   [ x x x x ]  }  each row is the incoming connections from the previous layer
+ * h     o u t
+ * i { [ x x x ],
+ * d   [ x x x ],
+ * d   [ x x x ],
+ * e   [ x x x ]  }    each row is the incoming connections from one neuron in the previous layer to one in the next
+ * n               
  * </pre>
  * 
  * @author Chloe M. Barnes
@@ -394,4 +400,5 @@ public class DecisionNetwork {
 		}
 		return results;
 	}
+	
 }
