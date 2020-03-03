@@ -50,7 +50,7 @@ public class DecisionNetwork {
 	/** An array that dictates the structure of the network, where each element contains the number of neurons in each layer sequentially.
 	 * The first element dictates the number of inputs, and the last element dictates the number of outputs. All other elements dictate the 
 	 * number of hidden layers and the number of neurons they hold respectively. TODO*/
-	private static int[] numberOfNeurons = {6,4,7,5,3};
+	private static int[] numberOfNeurons = {6,8,6,4,3};
 	
 	/** The generated output data. TODO */
 	private double[]	outputData;
