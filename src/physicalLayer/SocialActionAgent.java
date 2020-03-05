@@ -1,6 +1,8 @@
 package physicalLayer;
 
 import java.util.ArrayList;
+
+import deliberativeLayer.DecisionNetwork;
 import engine.Engine;
 import reactiveLayer.Neuron;
 
@@ -46,29 +48,28 @@ public class SocialActionAgent extends Agent {
 	/**
 	 * Creates an agent capable of social action, with no initial location, populated with given genes in the deliberative layer, an empty
 	 * reactive layer and no allocated targets. 
-	 * 
+	 * TODO
 	 * @param rows The number of rows in the environment.
 	 * @param cols The number of cols in the environment.
 	 * @param genes A 3D array containing the genes to populate the new agent with.
 	 */
-	public SocialActionAgent(int rows, int cols, double[][][] genes) {
-		super(rows, cols, genes);
+	public SocialActionAgent(int rows, int cols, double[][][] genes, int[][] nns) {
+		super(rows, cols, genes, nns);
 	}
 	
 	/**
-	 * {@inheritDoc}
+	 * {@inheritDoc} TODO
 	 */
 	@Override
 	public Agent produceOffspring(Agent other) {
-		SocialActionAgent offspring = new SocialActionAgent(null, rows, cols);
-		offspring.setGenes(decisionNetwork.createOffspring(other.getGenes()));
-		return offspring;
+		DecisionNetwork os = decisionNetwork.createOffspring(other.getGenes(), other.getNeurons());
+		return new SocialActionAgent(rows, cols, os.getGenes(), os.getNeurons());
 	}
 
 	/**
 	 * Creates a new offspring with no initial location, which is a representative state of the population 
 	 * at the current timestep, using the median weights across all agents in the population.
-	 *  	 
+	 *  	 TODO
 	 * @param genes The genes of the population to elicit "tradition" from.
 	 * @return A new agent that is a representative state of the population at the current timestep, which is initialised
 	 * 		with the median weights of the population.
@@ -76,7 +77,7 @@ public class SocialActionAgent extends Agent {
 	@Override
 	public Agent produceTraditionalOffspring(ArrayList<double[][][]> genes) {
 		double[][][] commonGenes = decisionNetwork.getCommonGenes(genes);
-		SocialActionAgent offspring = new SocialActionAgent(rows, cols, commonGenes);
+		SocialActionAgent offspring = new SocialActionAgent(rows, cols, commonGenes, getNeurons()); // agent is created with neurons of current agent
 		return offspring;
 	}
 	

@@ -93,12 +93,12 @@ public abstract class Agent {
 	 * @param cols The number of columns in the environment.
 	 * @param genes A 3D array containing the genes to populate the new agent with.
 	 */
-	public Agent(int rows, int cols, double[][][] genes) {
+	public Agent(int rows, int cols, double[][][] genes, int[][] nns) {
 		this.rows = rows;
 		this.cols = cols;
 		this.cell = null;
 		reactiveLayer = new ReactiveLayer(rows, cols);
-		decisionNetwork = new DecisionNetwork(genes);
+		decisionNetwork = new DecisionNetwork(genes, nns);
 		isAlive = true;
 		targets = new ArrayList<Resource>();
 		fitness = null;
@@ -216,6 +216,15 @@ public abstract class Agent {
 	 */
 	public double[][][] getGenes() {
 		return decisionNetwork.getGenes();
+	}
+	
+	/**
+	 * Returns the neuronal genes of the agent which are represented by a 3D array.
+	 * TODO
+	 * @return A 2D array containing the neurons of the agent.
+	 */
+	public int[][] getNeurons() {
+		return decisionNetwork.getNeurons();
 	}
 	
 	/**
