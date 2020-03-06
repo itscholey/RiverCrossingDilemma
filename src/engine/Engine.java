@@ -67,6 +67,8 @@ public class Engine {
 	public    static Random 	random 			= new Random();
 	/** The seed used for the random generator. */
 	public    static int 		SEED;
+	/** TODO */
+	public 	  static boolean	useNeuromodulation;
 	/** Filenames for the generational stats for each Agent population. */
 	protected static String[]	GEN_STATS_FILES;
 	/** Filenames for the generation fitnesses for each Agent population. */
@@ -123,8 +125,9 @@ public class Engine {
 	 * @param at The action type that the Agent(s) will employ, default {@link ActionType#GOAL_RATIONAL}. If not GOAL_RATIONAL, then
 	 * there will be a percentage chance (specified with the goalRationality param) for the specified action type to occur, with
 	 * goal-rational action occuring the remainder of the time.
+	 * TODO
 	 */
-	public Engine(int numAgentPopulations, boolean fromRandom, double goalRationality, int gens, int iters, ActionType at, int[] seeds) {
+	public Engine(int numAgentPopulations, boolean fromRandom, double goalRationality, int gens, int iters, ActionType at, boolean nm, int[] seeds) {
 		POPULATION_NUMBER = numAgentPopulations;
 		currentBest = new Agent[POPULATION_NUMBER];
 		agents = new ArrayList<ArrayList<Agent>>();
@@ -133,7 +136,9 @@ public class Engine {
 		GOAL_RATIONALITY = goalRationality;
 		NUM_GENERATIONS = gens;
 		ITERATIONS = iters;
-		System.out.println("Parameters:\nGoal-Rationality: " + GOAL_RATIONALITY + ", Action Type: " + ACTION_TYPE.toString() + ", " + seeds[0]);
+		useNeuromodulation = nm;
+		System.out.println("Parameters:\nGoal-Rationality: " + GOAL_RATIONALITY + ", Action Type: " + ACTION_TYPE.toString() + 
+				", use NM?: " + useNeuromodulation + ", " + seeds[0]);
 		
 		if (TURN_ON_GRAPH) {
 			bestFitnessGraph = new RealTimeGraph("Best in Population Performance", POPULATION_NUMBER);
@@ -193,16 +198,17 @@ public class Engine {
 	 * 		of the array is non-zero (negative values valid), then the agent will be initialised with that seed; subsequent agents
 	 * 		will be initialised with a seed if the array element is non-zero, or randomly initialised if 0.</li>
 	 * </ol>
+	 * TODO
 	 */
 	public static void main(String[] args) {
-		int numArgs = 6;
+		int numArgs = 7;
 		int[] seeds = new int[args.length-numArgs];
 		for (int i = 0; i < seeds.length; i++) {
 			seeds[i] = Integer.valueOf(args[i+numArgs]);
 			System.out.println(seeds[i]);
 		}
 		new Engine(Integer.valueOf(args[0]), Boolean.valueOf(args[1]), Double.valueOf(args[2]), 
-				Integer.valueOf(args[3]), Integer.valueOf(args[4]), ActionType.valueOf(args[5]), seeds);
+				Integer.valueOf(args[3]), Integer.valueOf(args[4]), ActionType.valueOf(args[5]), Boolean.valueOf(args[6]), seeds);
 	}	
 	
 	/**

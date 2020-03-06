@@ -168,8 +168,10 @@ public class DecisionNetwork {
 				for (int w = 0; w < weights[layer].length; w++) {
 					offspring[layer][w][col] = offspring[layer][w][col] + (Engine.random.nextGaussian() * MUTATION_RATE);
 				} 
-			}
-			
+			}		
+		}
+		
+		if (Engine.useNeuromodulation) {
 			// inherit from a random parent TODO
 			if (Engine.random.nextBoolean()) {
 				for (int a = 0; a < neurons.length; a++) {
@@ -184,15 +186,15 @@ public class DecisionNetwork {
 						offNeurons[a][b] = otherNeurons[a][b];
 					}
 				}
-			}			
-		}
-		
-		if (Engine.random.nextDouble() < MODULATION_RATE) {
-			// mutate one neuron
-			int[] target = new int[2];
-			target[0] = Engine.random.nextInt(offNeurons.length);
-			target[1] = Engine.random.nextInt(offNeurons[target[0]].length);
-			offNeurons[target[0]][target[1]] = (offNeurons[target[0]][target[1]] + 1) % 2;
+			}	
+			
+			if (Engine.random.nextDouble() < MODULATION_RATE) {
+				// mutate one neuron
+				int[] target = new int[2];
+				target[0] = Engine.random.nextInt(offNeurons.length);
+				target[1] = Engine.random.nextInt(offNeurons[target[0]].length);
+				offNeurons[target[0]][target[1]] = (offNeurons[target[0]][target[1]] + 1) % 2;
+			}
 		}
 		return new DecisionNetwork(offspring, offNeurons);
 	}
@@ -263,7 +265,12 @@ public class DecisionNetwork {
 			// apply activation function
 			a = tanh(z);
 			// modulate and get activation value
-			z = matrixMult(modulate(a, i-1), weights[i]);
+			if (Engine.useNeuromodulation) {
+				z = matrixMult(modulate(a, i-1), weights[i]);
+			}
+			else {
+				z = matrixMult(a, weights[i]);
+			}
 		}
 		// apply final activation function to get output
 		yHat = tanh(z);
