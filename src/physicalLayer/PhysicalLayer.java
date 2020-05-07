@@ -144,12 +144,11 @@ public class PhysicalLayer {
 	/**
 	 * Returns the fitness of a specified agent in the environment.
 	 * 
-	 * @param maxMoves The maximum number of moves an agent can make in the environment.
 	 * @param i The agent to check.
 	 * @return The calculated fitness of the specified agent.
 	 */
-	public double evaluateAgent(int maxMoves, int i) {
-		return agents.get(i).evaluate(maxMoves);
+	public double evaluateAgent(int i) {
+		return agents.get(i).evaluate();
 	}
 	
 	/**
@@ -221,6 +220,7 @@ public class PhysicalLayer {
 			}
 		}
 		resources = new ArrayList<Resource>();
+		// TODO 5/13 RESOURCES WRONG WAY ROUND
 		// set resources
 		grid[2][16].addObject(new Resource(grid[2][16])); // a
 		grid[16][2].addObject(new Resource(grid[16][2])); // b

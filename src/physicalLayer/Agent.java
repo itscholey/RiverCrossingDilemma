@@ -1,6 +1,8 @@
 package physicalLayer;
 
 import java.util.ArrayList;
+import java.util.Random;
+
 import deliberativeLayer.DecisionNetwork;
 import reactiveLayer.ReactiveLayer;
 
@@ -42,6 +44,8 @@ public abstract class Agent {
 	protected int 			cols;
 	/** The current fitness based on performance. */
 	protected Double 		fitness;
+	/** TODO */
+	protected Double		cumulativeFitness;
 	/** The reactive network used to hill-climb towards sub-goals. */
 	protected ReactiveLayer reactiveLayer;
 	/** The deliberative network used to generate sub-goals based on the current state. */
@@ -51,6 +55,8 @@ public abstract class Agent {
 	/** A bridge is built if the number of Stones put onto a Water cell equals the depth of the river. A partial bridge exists
 	 * when this is not equal but is more than 0. */
 	protected static boolean partialBridgeExists = false;
+	/** TODO */
+	protected String status = "";
 
 	/**
 	 * For invocation by subclasses. Creates an agent with an initial location in its environment, empty decision-making layers (random genes)
@@ -59,30 +65,20 @@ public abstract class Agent {
 	 * @param cell The initial location in the environment.
 	 * @param rows The number of rows in the environment.
 	 * @param cols The number of columns in the environment.
+	 * @param TODO
 	 */
-	public Agent(Cell cell, int rows, int cols) {
+	public Agent(Cell cell, int rows, int cols, Random rand) {
 		startCell = cell;
 		this.rows = rows;
 		this.cols = cols;
 		this.cell = cell;
 		reactiveLayer = new ReactiveLayer(rows, cols);
-		decisionNetwork = new DecisionNetwork();
+		decisionNetwork = new DecisionNetwork(rand);
 		isAlive = true;
 		targets = new ArrayList<Resource>();
 		fitness = null;
-		numStones = 0;
+		numStones = 0; // can be deleted? TODO
 		partialBridgeExists = false;
-	}
-	
-	/**
-	 * For invocation by subclasses. Creates an agent with no initial location in its environment, empty decision-making layers (random genes)
-	 * and no allocated targets.
-	 * 
-	 * @param rows The number of rows in the environment.
-	 * @param cols The number of columns in the environment.
-	 */
-	public Agent(int rows, int cols) {
-		this(null, rows, cols);
 	}
 	
 	/**
@@ -144,6 +140,14 @@ public abstract class Agent {
 		partialBridgeExists = false;
 	}
 	
+	/**
+	 * TODO
+	 */
+	public void resetCumulativeFitness() {
+		cumulativeFitness = 0.0;
+		status = "";
+	}
+	
 	/** 
 	 * Generate a {@link java.lang.String} representation of the current state, with text labels.
 	 * Used for debugging purposes.
@@ -185,10 +189,9 @@ public abstract class Agent {
 	/**
 	 * Calculates and returns the fitness of the Agent based on a specified metric.
 	 * 
-	 * @param maxMoves The maximum number of moves that an Agent can take in an environment.
 	 * @return The calculated fitness of the Agent.
 	 */
-	public abstract Double evaluate(int maxMoves);
+	public abstract Double evaluate();
 
 	/** 
 	 * Perform actions in a single move in a single timestep.
@@ -306,6 +309,31 @@ public abstract class Agent {
 	 */
 	public Double getFitness() {
 		return fitness;
+	}
+	
+	/**
+	 * TODO 
+	 * @return
+	 */
+	public Double getCumulativeFitness() {
+		return cumulativeFitness;
+	}
+	
+	public void incrementCumulativeFitness(Double amount) {
+		cumulativeFitness += amount;
+	}
+	
+	public Double calculateAverageFitness() {
+		fitness = cumulativeFitness/4.0;
+		return fitness;
+	}
+	
+	public void addToStatus(String s) {
+		status += s + ",";
+	}
+	
+	public String getEvalStatus() {
+		return status;
 	}
 	
 	/**

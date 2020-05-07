@@ -1,6 +1,7 @@
 package physicalLayer;
 
 import java.util.ArrayList;
+import java.util.Random;
 
 import deliberativeLayer.DecisionNetwork;
 import engine.Engine;
@@ -29,20 +30,10 @@ public class SocialActionAgent extends Agent {
 	 * @param cell The initial location of the agent in the environment. 
 	 * @param rows The number of rows in the environment.
 	 * @param cols The number of columns in the environment.
+	 * @param TODO
 	 */
-	public SocialActionAgent(Cell cell, int rows, int cols) {
-		super(cell, rows, cols);
-	}
-	
-	/**
-	 * Creates an agent capable of social action, with no initial location in its environment, empty decision-making layers (random genes)
-	 * and no allocated targets.
-	 * 
-	 * @param rows The number of rows in the environment.
-	 * @param cols The number of columns in the environment.
-	 */
-	public SocialActionAgent(int rows, int cols) {
-		super(rows, cols);
+	public SocialActionAgent(Cell cell, int rows, int cols, Random rand) {
+		super(cell, rows, cols, rand);
 	}
 	
 	/**
@@ -86,11 +77,10 @@ public class SocialActionAgent extends Agent {
 	 * subsequently how much energy was exerted by the cost incurred), and any penalties for loss of life. The number of moves
 	 * is not currently considered in the fitness measure. This purposefully doesn't "lead" the evolution via fitness.
 	 * 
-	 * @param maxMoves The maximum number of moves that an Agent can take in an environment.
 	 * @return A value representing the fitness based on performance and status.
 	 */
 	@Override
-	public Double evaluate(int maxMoves) {
+	public Double evaluate() {
 		Double result = (resourcesFound * 0.5) - (((numStones/2.0) * (1 + numStones)) * 0.1);
 		if (!isAlive) result -= 1;		
 		fitness = result;
@@ -173,6 +163,7 @@ public class SocialActionAgent extends Agent {
 				}
 				else {
 					cell = grid[newLoc.toArray()[0]][newLoc.toArray()[1]];
+					// TODO put this back in
 				}
 			}
 			else {

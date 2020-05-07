@@ -1,6 +1,7 @@
 package deliberativeLayer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 import java.lang.Math;
 
 import engine.Engine;
@@ -65,6 +66,7 @@ public class DecisionNetwork {
 	
 	/** TODO */
 	private int[][] neurons;
+	private Random random;
 
 	/** The rate in which the DecisionNetwork weights will mutate at each generation. */
 	private static final double MUTATION_RATE  = 0.01;
@@ -76,8 +78,10 @@ public class DecisionNetwork {
 	/** TODO
 	 * Creates a new DecisionNetwork with the default structure specified with <code>numberOfNeurons</code>, 
 	 * with weights randomly initialised between -1 and 1.
+	 * TODO if random is null then uses Engine random
 	 */
-	public DecisionNetwork() {
+	public DecisionNetwork(Random random) {
+		this.random = random;
 		
 		weights = new double[networkStructure.length-1][][];
 		neurons = new int[networkStructure.length-2][];
@@ -118,6 +122,7 @@ public class DecisionNetwork {
 		for(int i = 1; i < networkStructure.length; i++) {
 			offspring[i-1] = new double[networkStructure[i-1]][networkStructure[i]];
 		}
+		
 		for (int i = 0; i < offNeurons.length; i++) {
 			offNeurons[i] = new int[networkStructure[i+1]]; // neurons start as 0 - standard neurons
 		}
@@ -212,14 +217,6 @@ public class DecisionNetwork {
 	}
 	
 	/**
-	 * TODO
-	 * @return
-	 */
-	public int[][] getNeurons() {
-		return neurons;
-	}
-
-	/**
 	 * <p>Sets the weights that a DecisionNetwork contains for both layers.</p>
 	 * <p>Genes are passed in through a 3D array in the format <code>double[][rows][cols]</code>,</p>
 	 * <p>where <code>double[0]</code> contains {@link #weights1} and <code>double[1]</code> {@link #weights2}.</p>
@@ -228,6 +225,14 @@ public class DecisionNetwork {
 	 */
 	public void setGenes(double[][][] genes) {
 		weights = genes; // TODO copy
+	}
+	
+	/**
+	 * TODO
+	 * @return
+	 */
+	public int[][] getNeurons() {
+		return neurons;
 	}
 	
 	/**
@@ -391,7 +396,12 @@ public class DecisionNetwork {
 		for (int i = 0; i < matrix.length; i++) {
 			for (int j = 0; j < matrix[i].length; j++) {
 				if (randomise) {
-					matrix[i][j] = ((Engine.random.nextDouble() * 2) - 1); 
+					if (random == null) {
+						matrix[i][j] = ((Engine.random.nextDouble() * 2) - 1); 
+					}
+					else {
+						matrix[i][j] = ((random.nextDouble() * 2) - 1); 
+					}
 				}
 				else {
 					matrix[i][j] = 0.0;
@@ -425,6 +435,14 @@ public class DecisionNetwork {
 			}
 		}
 		return results;
+	}
+	
+	/**
+	 * TODO 
+	 * @return
+	 */
+	public static int[] getNetworkStructure() {
+		return networkStructure;
 	}
 	
 	// TODO UPDATE

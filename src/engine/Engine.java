@@ -3,6 +3,9 @@ package engine;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
+
+import deliberativeLayer.DecisionNetwork;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -69,6 +72,7 @@ public class Engine {
 	public    static int 		SEED;
 	/** TODO */
 	public 	  static boolean	useNeuromodulation;
+	private	  static boolean	evaluateOnFourEnvironments;
 	/** Filenames for the generational stats for each Agent population. */
 	protected static String[]	GEN_STATS_FILES;
 	/** Filenames for the generation fitnesses for each Agent population. */
@@ -127,7 +131,8 @@ public class Engine {
 	 * goal-rational action occuring the remainder of the time.
 	 * TODO
 	 */
-	public Engine(int numAgentPopulations, boolean fromRandom, double goalRationality, int gens, int iters, ActionType at, boolean nm, int[] seeds) {
+	public Engine(int numAgentPopulations, boolean fromRandom, double goalRationality, int gens, int iters, ActionType at, boolean nm, 
+			boolean fourEnvs, boolean startFromParsedWeights, int[] seeds) {
 		POPULATION_NUMBER = numAgentPopulations;
 		currentBest = new Agent[POPULATION_NUMBER];
 		agents = new ArrayList<ArrayList<Agent>>();
@@ -137,8 +142,9 @@ public class Engine {
 		NUM_GENERATIONS = gens;
 		ITERATIONS = iters;
 		useNeuromodulation = nm;
+		evaluateOnFourEnvironments = fourEnvs;
 		System.out.println("Parameters:\nGoal-Rationality: " + GOAL_RATIONALITY + ", Action Type: " + ACTION_TYPE.toString() + 
-				", use NM?: " + useNeuromodulation + ", " + seeds[0]);
+				", use NM?: " + useNeuromodulation + ", " + seeds[0] + ", evaluated on four environments: " + fourEnvs + ", start from parsed weights: " + startFromParsedWeights);
 		
 		if (TURN_ON_GRAPH) {
 			bestFitnessGraph = new RealTimeGraph("Best in Population Performance", POPULATION_NUMBER);
@@ -165,12 +171,23 @@ public class Engine {
 			}
 
 			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
-				writeToFile(GEN_STATS_FILES[popNum], "Agent " + popNum + ": " + seeds[popNum] + "\n" + printFilePrefix() + "generation,fitness,movesMade,isAlive,hasCarried,hasMadeBridge,numStones,targetsFound,successful\n");
+				if (fourEnvs) {
+					writeToFile(GEN_STATS_FILES[popNum], "Agent " + popNum + ": " + seeds[popNum] + "\n" + printFilePrefix() + 
+						"gen,fitness1,movesMade1,isAlive1,hasCarried1,hasMadeBridge1,numStones1,targetsFound1,successful1," + 
+						"fitness2,movesMade2,isAlive2,hasCarried2,hasMadeBridge2,numStones2,targetsFound2,successful2," +
+						"fitness3,movesMade3,isAlive3,hasCarried3,hasMadeBridge3,numStones3,targetsFound3,successful3," +
+						"generation4,fitness4,movesMade4,isAlive4,hasCarried4,hasMadeBridge4,numStones4,targetsFound4,successful4," +
+						"averageFitness\n");
+				}
+				else {
+					writeToFile(GEN_STATS_FILES[popNum], "Agent " + popNum + ": " + seeds[popNum] + "\n" + printFilePrefix() + 
+							"gen,fitness1,movesMade1,isAlive1,hasCarried1,hasMadeBridge1,numStones1,targetsFound1,successful1\n");
+				}
 				//writeToFile(AVERAGE_FILES[popNum],   "Agent " + popNum + ": " + seeds[popNum] + "\n" + printFilePrefix() + "gen,avg,best,worst,stDev\n");
 				writeToFile(FITNESS_FILES[popNum],   printFilePrefix() + "Generational Fitnesses: Agent " + popNum + ": " + seeds[popNum] + "\ngen,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\n");
 			}
 			
-			evolve(fromRandom, seeds);
+			evolve(fromRandom, seeds, startFromParsedWeights);
 			
 			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 				writeToFile(GEN_STATS_FILES[popNum], printFileSuffix());
@@ -201,14 +218,15 @@ public class Engine {
 	 * TODO
 	 */
 	public static void main(String[] args) {
-		int numArgs = 7;
+		int numArgs = 9;
 		int[] seeds = new int[args.length-numArgs];
 		for (int i = 0; i < seeds.length; i++) {
 			seeds[i] = Integer.valueOf(args[i+numArgs]);
 			System.out.println(seeds[i]);
 		}
 		new Engine(Integer.valueOf(args[0]), Boolean.valueOf(args[1]), Double.valueOf(args[2]), 
-				Integer.valueOf(args[3]), Integer.valueOf(args[4]), ActionType.valueOf(args[5]), Boolean.valueOf(args[6]), seeds);
+				Integer.valueOf(args[3]), Integer.valueOf(args[4]), ActionType.valueOf(args[5]), Boolean.valueOf(args[6]),
+				Boolean.valueOf(args[7]), Boolean.valueOf(args[8]),	seeds);
 	}	
 	
 	/**
@@ -227,8 +245,9 @@ public class Engine {
 	 * If randomise is true, the seeds array is ignored and the agent population(s) is randomly initialised. 
 	 * If the first element is non-zero, the element is used as a seed to initialise the agent populations; any 
 	 * subsequent elements that are 0 will mean that the population with that index is randomly initialised. If both 
+	 * TODO
 	 */
-	protected void evolve(boolean randomise, int[] seeds) throws IndexOutOfBoundsException {
+	protected void evolve(boolean randomise, int[] seeds, boolean startFromParsedWeights) throws IndexOutOfBoundsException {
 		if (!randomise && seeds[0] == 0 && agents.isEmpty()) {
 			throw new IndexOutOfBoundsException("Cannot evolve as no seeds are specified, randomise is false, and no "
 					+ "current population exists to continue from.");
@@ -246,17 +265,18 @@ public class Engine {
 				
 				for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 					if (popNum != 0) {
-						newSeed();
+						newSeed(); 
 					}
 					seeds[popNum] = SEED;
+					System.out.println(SEED);
 					agents.add(new ArrayList<Agent>());
-					agents.get(popNum).add(new SocialActionAgent(ROWS, COLS));
+					agents.get(popNum).add(new SocialActionAgent(null, ROWS, COLS, null));
 					agentsToLoop[popNum] = agents.get(popNum).get(popIndex);
 				}
 				// once initialised, run an instance so the agents get a fitness
-				loop(agentsToLoop, false);
+				loop(agentsToLoop, false, 0);
 				for (int f = 0; f < POPULATION_NUMBER; f++) {				
-					fitnesses[f][popIndex] = agents.get(f).get(popIndex).evaluate(TIME_STEPS); 
+					fitnesses[f][popIndex] = agents.get(f).get(popIndex).getFitness(); // was .evaluate()
 				}
 			}
 		}
@@ -265,15 +285,30 @@ public class Engine {
 			
 			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 				agents.add(new ArrayList<Agent>());
-				if (seeds[popNum] == 0) {
-					newSeed();
+				if (startFromParsedWeights && seeds[popNum] != 0) {
+					String filename = "../alone";
+					filename = (useNeuromodulation) ? filename + "-nm/" : filename + "/";
+					filename += seeds[popNum] + "/fitnesses-agent0-iter0.csv";
+					
+					WeightsParser wp = new WeightsParser();
+					ArrayList<DecisionNetwork> parsedAgents = wp.toArray(filename);
+					
+					for (int popIndex = 0; popIndex < POPULATION_SIZE; popIndex++) {
+						agents.get(popNum).add(new SocialActionAgent(ROWS, COLS, parsedAgents.get(popIndex).getGenes(), parsedAgents.get(popIndex).getNeurons()));
+					}
 				}
 				else {
-					SEED = seeds[popNum];
-					random.setSeed(SEED);
-				}
-				for (int popIndex = 0; popIndex < POPULATION_SIZE; popIndex++) {
-					agents.get(popNum).add(new SocialActionAgent(ROWS, COLS));
+					if (seeds[popNum] == 0) {
+						newSeed();
+						seeds[popNum] = SEED;
+					}
+					else {
+						SEED = seeds[popNum];
+						random.setSeed(SEED);
+					}
+					for (int popIndex = 0; popIndex < POPULATION_SIZE; popIndex++) {
+						agents.get(popNum).add(new SocialActionAgent(null, ROWS, COLS, null));
+					}
 				}
 			}
 			goalRandom.setSeed(SEED);
@@ -284,9 +319,9 @@ public class Engine {
 				for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 					agentsToLoop[popNum] = agents.get(popNum).get(popIndex);
 				}
-				loop(agentsToLoop, false);
+				loop(agentsToLoop, false, 0);
 				for (int f = 0; f < POPULATION_NUMBER; f++) {				
-					fitnesses[f][popIndex] = agents.get(f).get(popIndex).evaluate(TIME_STEPS); 
+					fitnesses[f][popIndex] = agents.get(f).get(popIndex).getFitness(); // was .evaluate
 				}
 			}
 		}
@@ -316,10 +351,10 @@ public class Engine {
 					tnmt[pop] = tournament[pop][t];
 				}
 				
-				loop(tnmt, false);
+				loop(tnmt, false, gen);
 				
 				for (int pop = 0; pop < POPULATION_NUMBER; pop++) {
-					tournamentFitness[pop][t] = tournament[pop][t].evaluate(TIME_STEPS);
+					tournamentFitness[pop][t] = tournament[pop][t].getFitness(); // was .evaluate
 					fitnesses[pop][indexes[pop][t]] = tournamentFitness[pop][t];
 				}
 			}
@@ -327,7 +362,12 @@ public class Engine {
 			int[] worstIndex = new int[POPULATION_NUMBER];
 			for (int p = 0; p < POPULATION_NUMBER; p++) {
 				currentBest[p] = findBestParent(tournament[p]);
-				outputs[p] += gen + "," + currentBest[p].getStringStatus() + "\n";
+				if (evaluateOnFourEnvironments) {
+					outputs[p] += gen + "," + currentBest[p].getEvalStatus() + currentBest[p].getFitness() + "\n";
+				}
+				else {
+					outputs[p] += gen + "," + currentBest[p].getStringStatus() + "\n";
+				}
 				worstIndex[p] = findWorstParent(tournament[p]); // worst index in the tournament;
 			}
 
@@ -361,11 +401,7 @@ public class Engine {
 			    	agents.get(popNum).set(indexes[popNum][worstIndex[popNum]],
 			    			agents.get(popNum).get(indexes[popNum][parentIndexes.get(popNum).get(0)]).
 			    				produceOffspring(agents.get(popNum).get(indexes[popNum][parentIndexes.get(popNum).get(1)])));
-					
-			    	fitnesses[popNum][indexes[popNum][worstIndex[popNum]]] = 
-			    			agents.get(popNum).get(indexes[popNum][worstIndex[popNum]]).evaluate(TIME_STEPS);
-			    	}
-			    //TODO loop new
+			    }
 			}
 			else if (ACTION_TYPE == ActionType.TRADITIONAL) { // traditional
 				ArrayList<double[][][]> commonGenes = new ArrayList<double[][][]>();
@@ -375,24 +411,27 @@ public class Engine {
 					}
 					agents.get(popNum).set(indexes[popNum][worstIndex[popNum]], 
 							agents.get(popNum).get(indexes[popNum][parentIndexes.get(popNum).get(0)]).produceTraditionalOffspring(commonGenes));
-				    fitnesses[popNum][indexes[popNum][worstIndex[popNum]]] = 
-				    		agents.get(popNum).get(indexes[popNum][worstIndex[popNum]]).evaluate(TIME_STEPS);
-				    //TODO loop new
+				
 				    commonGenes.clear();
 				}
 			}
-			else { // ACTION_TYPE == ActionType.RANDOM
-				Agent[] agentsToLoop = new Agent[POPULATION_NUMBER];
-				
+			else { // ACTION_TYPE == ActionType.RANDOM				
 				for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
-					agents.get(popNum).set(indexes[popNum][worstIndex[popNum]], new SocialActionAgent(ROWS, COLS));
-					agentsToLoop[popNum] = agents.get(popNum).get(indexes[popNum][worstIndex[popNum]]);
-				}
-				loop(agentsToLoop, false);
-				for (int f = 0; f < POPULATION_NUMBER; f++) {				
-					fitnesses[f][indexes[f][worstIndex[f]]] = agents.get(f).get(indexes[f][worstIndex[f]]).evaluate(TIME_STEPS); 
+					agents.get(popNum).set(indexes[popNum][worstIndex[popNum]], new SocialActionAgent(null, ROWS, COLS, null));
 				}
 			}
+			
+			// loop through newly-made offspring
+			Agent[] agentsToLoop = new Agent[POPULATION_NUMBER];
+			
+			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
+				agentsToLoop[popNum] = agents.get(popNum).get(indexes[popNum][worstIndex[popNum]]);
+			}
+			loop(agentsToLoop, false, gen);
+			for (int f = 0; f < POPULATION_NUMBER; f++) {				
+				fitnesses[f][indexes[f][worstIndex[f]]] = agents.get(f).get(indexes[f][worstIndex[f]]).getFitness(); // was .evaluate(); 
+			}
+			
 			
 			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 				outputFit[popNum] += gen + "," + fitnessArrayToString(popNum) + "\n";
@@ -401,7 +440,7 @@ public class Engine {
 				//		+ getWorstFitness(popNum) + "," + getStandardDeviationFitness(popNum, avgs[popNum]) + "\n";
  			}	
 		    // no need to add a new population - the current one is changed incrementally
-			if ((gen+1) % 500 == 0) {
+			if ((gen+1) % 125 == 0) {
 		    	for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 			        writeToFile(GEN_STATS_FILES[popNum], outputs[popNum]);
 			        writeToFile(FITNESS_FILES[popNum], outputFit[popNum]);
@@ -435,7 +474,8 @@ public class Engine {
 				
 				outputFit[popNum] += popIndex + " end\n";
 			}	
-			outputs[popNum] += "\nEnd of Weights" + popNum + "------------------------\n//\n";
+			outputs[popNum] += "\nEnd of Weights" + popNum + "------------------------\n//\nSeed: " + seeds[popNum] + "\n";
+			outputFit[popNum] += "\nEnd of Weights" + popNum + "------------------------\n//\nSeed: " + seeds[popNum] + "\n";
 		}
 		
     	for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
@@ -446,6 +486,15 @@ public class Engine {
 	        outputFit[popNum] = "";
 	        //outputAvg[popNum] = "";
     	}
+    	
+		//environmentView = new View(model, "environment");
+		//activityViews = new View[POPULATION_NUMBER];
+
+//		for (int i = 0; i < POPULATION_NUMBER; i++) {
+//			activityViews[i] = new View(model, "activity", i);
+//		}
+		
+//		loop(currentBest, true, 0);
 	}
 	
 	/**
@@ -552,6 +601,7 @@ public class Engine {
 		goalRandom.setSeed(SEED);
 	}
 	
+
 	/**
 	 * Sets up an environment instance with the specified agent(s), which have a maximum number of
 	 * time-steps to achieve their goals. The run will stop when all agents in the environment
@@ -563,51 +613,139 @@ public class Engine {
 	 * element in the array correlates to the population number of the {@link agents} container.
 	 * @param showViews true if the visualisations of the environment and the activity landscape
 	 * (decision-making processes of the agent(s)) should be displayed, false otherwise.
+	 * TODO
 	 */
-	protected void loop(Agent[] a, boolean showViews) {
-		model.resetAll();
-		running = true;
-		int count = 0;
-		for (int i = 0; i < a.length; i++) {
-			a[i].reset();
-			model.addAgent(a[i]);
-		}
-		// TODO change so any number of agents can have a start cell
-		model.getAgents().get(0).setStartCell(model.getCell(0, 0));
-		if (model.getAgents().size() == 2) {
-			model.getAgents().get(1).setStartCell(model.getCell(ROWS-1, COLS-1));
-		}
-		
-		if (TURN_ON_VISUALS) {
-			environmentView = new View(model, "environment");
-			activityViews = new View[POPULATION_NUMBER];
-	
-			for (int i = 0; i < POPULATION_NUMBER; i++) {
-				activityViews[i] = new View(model, "activity", i);
+	protected void loop(Agent[] a, boolean showViews, int gen) {
+		if (!evaluateOnFourEnvironments) {
+			model.resetAll();
+			running = true;
+			int count = 0;
+			for (int i = 0; i < a.length; i++) {
+				a[i].reset();
+				model.addAgent(a[i]);
 			}
-		}
+			// TODO change so any number of agents can have a start cell
+			model.getAgents().get(0).setStartCell(model.getCell(0, 0));
+			if (model.getAgents().size() == 2) {
+				model.getAgents().get(1).setStartCell(model.getCell(ROWS-1, COLS-1));
+				//model.getAgents().get(1).setStartCell(model.getCell(ROWS-1, 0));
+			}
+			
+			if (TURN_ON_VISUALS) {
+				environmentView = new View(model, "environment");
+				activityViews = new View[POPULATION_NUMBER];
 		
-		while (count < TIME_STEPS && running) {
-			update(showViews);
-			count++;
-			if (showViews) {
-				try {
-					Thread.sleep(200);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+				for (int i = 0; i < POPULATION_NUMBER; i++) {
+					activityViews[i] = new View(model, "activity", i);
 				}
 			}
 			
-			// isFinished is assigned FALSE if one+ agents have not achieved the goal
-			boolean isFinished = true;
-			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
-				if (!model.getAgents().get(popNum).hasAchievedGoal()) {
-					isFinished = false;
+			while (count < TIME_STEPS && running) {
+				update(showViews);
+				count++;
+				if (showViews) {
+					try {
+						Thread.sleep(200);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 				}
+				
+				// isFinished is assigned FALSE if one+ agents have not achieved the goal
+				boolean isFinished = true;
+				for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
+					if (!model.getAgents().get(popNum).hasAchievedGoal()) {
+						isFinished = false;
+					}
+				}
+				if (isFinished) running = false;
 			}
-			if (isFinished) running = false;
+			for (int i = 0; i < POPULATION_NUMBER; i++) {
+				model.getAgents().get(i).evaluate();
+			}
+		}
+		else {
+			loopFourEnvironments(a, showViews, gen);
 		}
 	}
+	
+	/**
+	 * Sets up an environment instance with the specified agent(s), which have a maximum number of
+	 * time-steps to achieve their goals. The run will stop when all agents in the environment
+	 * have achieved their goals, or if the maximum number of time-steps has been reached.
+	 * Note: this currently only works with one or two agents.
+	 * 
+	 * @param a An array of agents to be placed into the environment instance. This is not a whole
+	 * population of agents, just those individuals who will compete in this run. The index of the
+	 * element in the array correlates to the population number of the {@link agents} container.
+	 * @param showViews true if the visualisations of the environment and the activity landscape
+	 * (decision-making processes of the agent(s)) should be displayed, false otherwise.
+	 * @param gen TODO
+	 */
+	protected void loopFourEnvironments(Agent[] a, boolean showViews, int gen) {
+		// TODO this is hardcoded for now - clean up later
+		for (int i = 0; i < a.length; i++) {
+			a[i].resetCumulativeFitness();
+		}
+		for (int eval = 0; eval < 4; eval++) {
+			model.resetAll();
+			running = true;
+			int count = 0;
+			if ((eval%2) == 1) { // if odd then add a pair
+				a = Arrays.copyOf(a, 2);
+				a[1] = (eval == 1) ? new SocialActionAgent(null, ROWS, COLS, new Random(gen)) : new SocialActionAgent(null, ROWS, COLS, new Random(gen+NUM_GENERATIONS));
+			}
+			else if (eval == 2) {
+				a = Arrays.copyOf(a, 1);
+			}
+			
+			for (int i = 0; i < a.length; i++) {
+				a[i].reset();
+				model.addAgent(a[i]);
+			}
+			// TODO change so any number of agents can have a start cell
+			model.getAgents().get(0).setStartCell(model.getCell(0, 0));
+			if (model.getAgents().size() == 2) {
+				model.getAgents().get(1).setStartCell(model.getCell(ROWS-1, COLS-1));
+			}
+			
+			if (TURN_ON_VISUALS) {
+				environmentView = new View(model, "environment");
+				activityViews = new View[POPULATION_NUMBER];
+		
+				for (int i = 0; i < POPULATION_NUMBER; i++) {
+					activityViews[i] = new View(model, "activity", i);
+				}
+			}
+			
+			while (count < TIME_STEPS && running) {
+				update(showViews);
+				count++;
+				if (showViews) {
+					try {
+						Thread.sleep(200);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				
+				// isFinished is assigned FALSE if one+ agents have not achieved the goal TODO
+				boolean isFinished = true;
+				for (int popNum = 0; popNum < a.length; popNum++) {
+					if (!model.getAgents().get(popNum).hasAchievedGoal()) {
+						isFinished = false;
+					}
+				}
+				if (isFinished) running = false;
+			}
+			
+			model.getAgents().get(0).incrementCumulativeFitness(model.getAgents().get(0).evaluate());
+			model.getAgents().get(0).addToStatus(model.getAgents().get(0).getStringStatus());
+		}
+		
+		a[0].calculateAverageFitness();
+	}
+	
 	
 	/**
 	 * Updates the model of the environment for one time-step, as well as any views that visualise 
