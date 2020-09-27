@@ -486,15 +486,16 @@ public class Engine {
 	        outputFit[popNum] = "";
 	        //outputAvg[popNum] = "";
     	}
-    	
-		//environmentView = new View(model, "environment");
-		//activityViews = new View[POPULATION_NUMBER];
+    	/*
+		environmentView = new View(model, "environment");
+		activityViews = new View[POPULATION_NUMBER];
 
-//		for (int i = 0; i < POPULATION_NUMBER; i++) {
-//			activityViews[i] = new View(model, "activity", i);
-//		}
+		for (int i = 0; i < POPULATION_NUMBER; i++) {
+			activityViews[i] = new View(model, "activity", i);
+		}
 		
-//		loop(currentBest, true, 0);
+		loop(currentBest, true, 0);
+		*/
 	}
 	
 	/**

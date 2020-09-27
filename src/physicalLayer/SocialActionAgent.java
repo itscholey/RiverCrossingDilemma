@@ -163,7 +163,7 @@ public class SocialActionAgent extends Agent {
 				}
 				else {
 					cell = grid[newLoc.toArray()[0]][newLoc.toArray()[1]];
-					// TODO put this back in
+					// TODO put this back in (dont move onto water if not carrying)
 				}
 			}
 			else {
