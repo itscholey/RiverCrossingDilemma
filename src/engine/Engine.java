@@ -72,7 +72,8 @@ public class Engine {
 	public    static int 		SEED;
 	/** TODO */
 	public 	  static boolean	useNeuromodulation;
-	private	  static boolean	evaluateOnFourEnvironments;
+	private	  static int		numEnvironments;
+	private	  static boolean	useConsistentPartner;
 	/** Filenames for the generational stats for each Agent population. */
 	protected static String[]	GEN_STATS_FILES;
 	/** Filenames for the generation fitnesses for each Agent population. */
@@ -132,7 +133,7 @@ public class Engine {
 	 * TODO
 	 */
 	public Engine(int numAgentPopulations, boolean fromRandom, double goalRationality, int gens, int iters, ActionType at, boolean nm, 
-			boolean fourEnvs, boolean startFromParsedWeights, int[] seeds) {
+			int numEnvs, boolean startFromParsedWeights, boolean consPartner, int[] seeds) {
 		POPULATION_NUMBER = numAgentPopulations;
 		currentBest = new Agent[POPULATION_NUMBER];
 		agents = new ArrayList<ArrayList<Agent>>();
@@ -142,9 +143,11 @@ public class Engine {
 		NUM_GENERATIONS = gens;
 		ITERATIONS = iters;
 		useNeuromodulation = nm;
-		evaluateOnFourEnvironments = fourEnvs;
+		numEnvironments = numEnvs;
+		useConsistentPartner = consPartner;
 		System.out.println("Parameters:\nGoal-Rationality: " + GOAL_RATIONALITY + ", Action Type: " + ACTION_TYPE.toString() + 
-				", use NM?: " + useNeuromodulation + ", " + seeds[0] + ", evaluated on four environments: " + fourEnvs + ", start from parsed weights: " + startFromParsedWeights);
+				", use NM?: " + useNeuromodulation + ", " + seeds[0] + ", number of environments evaluated on: " + numEnvironments + 
+				", start from parsed weights: " + startFromParsedWeights + ", consistent partner/s:" + useConsistentPartner);
 		
 		if (TURN_ON_GRAPH) {
 			bestFitnessGraph = new RealTimeGraph("Best in Population Performance", POPULATION_NUMBER);
@@ -171,23 +174,25 @@ public class Engine {
 			}
 
 			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
-				if (fourEnvs) {
-					writeToFile(GEN_STATS_FILES[popNum], "Agent " + popNum + ": " + seeds[popNum] + "\n" + printFilePrefix() + 
-						"gen,fitness1,movesMade1,isAlive1,hasCarried1,hasMadeBridge1,numStones1,targetsFound1,successful1," + 
-						"fitness2,movesMade2,isAlive2,hasCarried2,hasMadeBridge2,numStones2,targetsFound2,successful2," +
-						"fitness3,movesMade3,isAlive3,hasCarried3,hasMadeBridge3,numStones3,targetsFound3,successful3," +
-						"generation4,fitness4,movesMade4,isAlive4,hasCarried4,hasMadeBridge4,numStones4,targetsFound4,successful4," +
-						"averageFitness\n");
+				String prefix = "Agent " + popNum + ": " + seeds[popNum] + "\n" + printFilePrefix() + "gen,";
+				for (i = 1; i <= numEnvironments; i++) {
+					prefix += "fitness"+i+",movesMade"+i+",isAlive"+i+",hasCarried"+i+",hasMadeBridge"+i+",numStones"+i+",targetsFound"+i+",successful"+i; 
+					if (i == numEnvironments && numEnvironments != 1) {
+						prefix += ",totalFitness";
+					}
+					if (i != numEnvironments) {
+						prefix += ",";
+					}
+					else if (i == numEnvironments) {
+						prefix += "\n";
+					}		
 				}
-				else {
-					writeToFile(GEN_STATS_FILES[popNum], "Agent " + popNum + ": " + seeds[popNum] + "\n" + printFilePrefix() + 
-							"gen,fitness1,movesMade1,isAlive1,hasCarried1,hasMadeBridge1,numStones1,targetsFound1,successful1\n");
-				}
+				writeToFile(GEN_STATS_FILES[popNum], prefix);
 				//writeToFile(AVERAGE_FILES[popNum],   "Agent " + popNum + ": " + seeds[popNum] + "\n" + printFilePrefix() + "gen,avg,best,worst,stDev\n");
 				writeToFile(FITNESS_FILES[popNum],   printFilePrefix() + "Generational Fitnesses: Agent " + popNum + ": " + seeds[popNum] + "\ngen,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\n");
 			}
 			
-			evolve(fromRandom, seeds, startFromParsedWeights);
+			evolve(fromRandom, seeds, startFromParsedWeights, useConsistentPartner);
 			
 			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 				writeToFile(GEN_STATS_FILES[popNum], printFileSuffix());
@@ -217,16 +222,21 @@ public class Engine {
 	 * </ol>
 	 * TODO
 	 */
-	public static void main(String[] args) {
-		int numArgs = 9;
+	public static void main(String[] args) throws RuntimeException {
+		int numArgs = 10;
 		int[] seeds = new int[args.length-numArgs];
 		for (int i = 0; i < seeds.length; i++) {
 			seeds[i] = Integer.valueOf(args[i+numArgs]);
 			System.out.println(seeds[i]);
 		}
+		if (!Boolean.valueOf(args[9]) && Integer.valueOf(args[0]) == 2) {
+			throw new RuntimeException("Cannot have 2 agent populations as well as using a non-consistent partner. Change agent populations to 1 to have a non-consistent partner (Random Together Experiments),"
+					+ " or change to be a consistent partner (Together experiments).");
+		}
 		new Engine(Integer.valueOf(args[0]), Boolean.valueOf(args[1]), Double.valueOf(args[2]), 
-				Integer.valueOf(args[3]), Integer.valueOf(args[4]), ActionType.valueOf(args[5]), Boolean.valueOf(args[6]),
-				Boolean.valueOf(args[7]), Boolean.valueOf(args[8]),	seeds);
+			Integer.valueOf(args[3]), Integer.valueOf(args[4]), ActionType.valueOf(args[5]), Boolean.valueOf(args[6]),
+			Integer.valueOf(args[7]), Boolean.valueOf(args[8]),	Boolean.valueOf(args[9]), seeds);
+		
 	}	
 	
 	/**
@@ -247,7 +257,7 @@ public class Engine {
 	 * subsequent elements that are 0 will mean that the population with that index is randomly initialised. If both 
 	 * TODO
 	 */
-	protected void evolve(boolean randomise, int[] seeds, boolean startFromParsedWeights) throws IndexOutOfBoundsException {
+	protected void evolve(boolean randomise, int[] seeds, boolean startFromParsedWeights, boolean consistentPartner) throws IndexOutOfBoundsException {
 		if (!randomise && seeds[0] == 0 && agents.isEmpty()) {
 			throw new IndexOutOfBoundsException("Cannot evolve as no seeds are specified, randomise is false, and no "
 					+ "current population exists to continue from.");
@@ -362,7 +372,7 @@ public class Engine {
 			int[] worstIndex = new int[POPULATION_NUMBER];
 			for (int p = 0; p < POPULATION_NUMBER; p++) {
 				currentBest[p] = findBestParent(tournament[p]);
-				if (evaluateOnFourEnvironments) {
+				if (numEnvironments > 1) {
 					outputs[p] += gen + "," + currentBest[p].getEvalStatus() + currentBest[p].getFitness() + "\n";
 				}
 				else {
@@ -617,10 +627,16 @@ public class Engine {
 	 * TODO
 	 */
 	protected void loop(Agent[] a, boolean showViews, int gen) {
-		if (!evaluateOnFourEnvironments) {
+		if (numEnvironments == 1) {
 			model.resetAll();
 			running = true;
 			int count = 0;
+			
+			if (!useConsistentPartner) { // if non-consistent partner then add
+				a = Arrays.copyOf(a, 2);
+				a[1] = new SocialActionAgent(null, ROWS, COLS, new Random(gen));
+			}
+			
 			for (int i = 0; i < a.length; i++) {
 				a[i].reset();
 				model.addAgent(a[i]);
@@ -666,8 +682,8 @@ public class Engine {
 			}
 		}
 		else {
-			loopFourEnvironments(a, showViews, gen);
-		}
+			loopManyEnvironments(a, showViews, gen);
+		}		
 	}
 	
 	/**
@@ -683,20 +699,28 @@ public class Engine {
 	 * (decision-making processes of the agent(s)) should be displayed, false otherwise.
 	 * @param gen TODO
 	 */
-	protected void loopFourEnvironments(Agent[] a, boolean showViews, int gen) {
+	protected void loopManyEnvironments(Agent[] a, boolean showViews, int gen) {
+		Agent[] aCopy = Arrays.copyOf(a, a.length);
+		
 		// TODO this is hardcoded for now - clean up later
 		for (int i = 0; i < a.length; i++) {
 			a[i].resetCumulativeFitness();
 		}
-		for (int eval = 0; eval < 4; eval++) {
+		for (int eval = 0; eval < numEnvironments; eval++) {
+			a = Arrays.copyOf(aCopy, aCopy.length);
 			model.resetAll();
 			running = true;
 			int count = 0;
 			if ((eval%2) == 1) { // if odd then add a pair
-				a = Arrays.copyOf(a, 2);
-				a[1] = (eval == 1) ? new SocialActionAgent(null, ROWS, COLS, new Random(gen)) : new SocialActionAgent(null, ROWS, COLS, new Random(gen+NUM_GENERATIONS));
+				if (!useConsistentPartner) {
+					a = Arrays.copyOf(a, 2);
+					// this works with 2, 3 and 4 environments
+					a[1] = (eval == 1) ? new SocialActionAgent(null, ROWS, COLS, new Random(gen)) : new SocialActionAgent(null, ROWS, COLS, new Random(gen+NUM_GENERATIONS));
+				}
+				// else it just uses its pair already
+				// TODO Change so that if eval4 needs to have to different consistent partners, i.e. agent x paired with Y and Z
 			}
-			else if (eval == 2) {
+			else if ((eval%2) == 0) {
 				a = Arrays.copyOf(a, 1);
 			}
 			
@@ -742,11 +766,17 @@ public class Engine {
 			
 			model.getAgents().get(0).incrementCumulativeFitness(model.getAgents().get(0).evaluate());
 			model.getAgents().get(0).addToStatus(model.getAgents().get(0).getStringStatus());
+			if (model.getAgents().size() > 1) {
+				model.getAgents().get(1).incrementCumulativeFitness(model.getAgents().get(1).evaluate());
+				model.getAgents().get(1).addToStatus(model.getAgents().get(1).getStringStatus());
+			}
 		}
 		
-		a[0].calculateAverageFitness();
+		a[0].setTotalFitness();
+		if (model.getAgents().size() > 1) {
+			a[1].setTotalFitness();
+		}
 	}
-	
 	
 	/**
 	 * Updates the model of the environment for one time-step, as well as any views that visualise 

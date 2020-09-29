@@ -166,7 +166,17 @@ public abstract class Agent {
 	 * @return A {@link java.lang.String} representation of the current state.
 	 */
 	public String getStringStatus() {
-		return fitness + "," + moves + "," + isAlive + "," + hasCarried + "," + hasDroppedinRiver + "," + numStones + "," + resourcesFound + "," + achievedGoal;
+		String s = "";
+		s += fitness + "," + moves + ",";
+		s += isAlive ? "t" : "f";
+		s += ",";
+		s += hasCarried ? "t" : "f";
+		s += ",";
+		s += hasDroppedinRiver ? "t" : "f";
+		s += "," + numStones + "," + resourcesFound + ",";
+		s += achievedGoal ? "t" : "f";
+		return s;
+		//return fitness + "," + moves + "," + isAlive + "," + hasCarried + "," + hasDroppedinRiver + "," + numStones + "," + resourcesFound + "," + achievedGoal;
 	}
 	
 	/**
@@ -323,8 +333,8 @@ public abstract class Agent {
 		cumulativeFitness += amount;
 	}
 	
-	public Double calculateAverageFitness() {
-		fitness = cumulativeFitness/4.0;
+	public Double setTotalFitness() {
+		fitness = cumulativeFitness;
 		return fitness;
 	}
 	
