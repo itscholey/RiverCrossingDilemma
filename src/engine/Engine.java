@@ -263,8 +263,10 @@ public class Engine {
 					+ "current population exists to continue from.");
 		}
 		
-		String[] outputs = {"", ""};
-		String[] outputFit = {"",""};
+		String[] outputs = new String[POPULATION_NUMBER];
+		String[] outputFit = new String[POPULATION_NUMBER];
+		Arrays.fill(outputs, "");
+		Arrays.fill(outputFit, "");
 		//String[] outputAvg = {"",""};
 		model = new PhysicalLayer(ROWS, COLS);
 
@@ -295,7 +297,7 @@ public class Engine {
 			
 			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 				agents.add(new ArrayList<Agent>());
-				if (startFromParsedWeights && seeds[popNum] != 0) {
+				if (startFromParsedWeights && seeds[popNum] != 0 && popNum == 0) {
 					String filename = "../alone";
 					filename = (useNeuromodulation) ? filename + "-nm/" : filename + "/";
 					filename += seeds[popNum] + "/fitnesses-agent0-iter0.csv";
@@ -306,6 +308,8 @@ public class Engine {
 					for (int popIndex = 0; popIndex < POPULATION_SIZE; popIndex++) {
 						agents.get(popNum).add(new SocialActionAgent(ROWS, COLS, parsedAgents.get(popIndex).getGenes(), parsedAgents.get(popIndex).getNeurons()));
 					}
+					System.out.println("If using a partner, please note the partner will not be initialised from parsed weights and instead is randomly initialised.");
+					// To change this, take out the && popNum==0 condition! As currently for the second seed, it will go to the else clause below and randomly initialise
 				}
 				else {
 					if (seeds[popNum] == 0) {
@@ -701,7 +705,6 @@ public class Engine {
 	 */
 	protected void loopManyEnvironments(Agent[] a, boolean showViews, int gen) {
 		Agent[] aCopy = Arrays.copyOf(a, a.length);
-		
 		// TODO this is hardcoded for now - clean up later
 		for (int i = 0; i < a.length; i++) {
 			a[i].resetCumulativeFitness();
@@ -716,6 +719,10 @@ public class Engine {
 					a = Arrays.copyOf(a, 2);
 					// this works with 2, 3 and 4 environments
 					a[1] = (eval == 1) ? new SocialActionAgent(null, ROWS, COLS, new Random(gen)) : new SocialActionAgent(null, ROWS, COLS, new Random(gen+NUM_GENERATIONS));
+				}
+				else { // use consistent partner, but if eval4 choose a different partner for evals 2 and 4
+					a = Arrays.copyOf(a, 2);
+					a[1] = (eval == 1) ? aCopy[1] : aCopy[2];
 				}
 				// else it just uses its pair already
 				// TODO Change so that if eval4 needs to have to different consistent partners, i.e. agent x paired with Y and Z
@@ -766,7 +773,7 @@ public class Engine {
 			
 			model.getAgents().get(0).incrementCumulativeFitness(model.getAgents().get(0).evaluate());
 			model.getAgents().get(0).addToStatus(model.getAgents().get(0).getStringStatus());
-			if (model.getAgents().size() > 1) {
+			if (model.getAgents().size() > 1 && POPULATION_NUMBER > 1) {
 				model.getAgents().get(1).incrementCumulativeFitness(model.getAgents().get(1).evaluate());
 				model.getAgents().get(1).addToStatus(model.getAgents().get(1).getStringStatus());
 			}
