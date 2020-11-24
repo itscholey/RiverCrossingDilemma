@@ -162,8 +162,9 @@ public class SocialActionAgent extends Agent {
 					hasDroppedinRiver = true;
 				}
 				else {
-					cell = grid[newLoc.toArray()[0]][newLoc.toArray()[1]];
-					// TODO put this back in (dont move onto water if not carrying)
+					if (!Engine.protectedRiver) {
+						cell = grid[newLoc.toArray()[0]][newLoc.toArray()[1]]; // don't move, river as wall if protected
+					}
 				}
 			}
 			else {

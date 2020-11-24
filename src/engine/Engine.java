@@ -70,6 +70,8 @@ public class Engine {
 	public    static Random 	random 			= new Random();
 	/** The seed used for the random generator. */
 	public    static int 		SEED;
+	
+	public    static boolean	protectedRiver;
 	/** TODO */
 	public 	  static boolean	useNeuromodulation;
 	private	  static int		numEnvironments;
@@ -133,7 +135,7 @@ public class Engine {
 	 * TODO
 	 */
 	public Engine(int numAgentPopulations, boolean fromRandom, double goalRationality, int gens, int iters, ActionType at, boolean nm, 
-			int numEnvs, boolean startFromParsedWeights, boolean consPartner, int[] seeds) {
+			int numEnvs, boolean startFromParsedWeights, boolean consPartner, boolean protRiv, int[] seeds) {
 		POPULATION_NUMBER = numAgentPopulations;
 		currentBest = new Agent[POPULATION_NUMBER];
 		agents = new ArrayList<ArrayList<Agent>>();
@@ -145,6 +147,7 @@ public class Engine {
 		useNeuromodulation = nm;
 		numEnvironments = numEnvs;
 		useConsistentPartner = consPartner;
+		protectedRiver = protRiv;
 		System.out.println("Parameters:\nGoal-Rationality: " + GOAL_RATIONALITY + ", Action Type: " + ACTION_TYPE.toString() + 
 				", use NM?: " + useNeuromodulation + ", " + seeds[0] + ", number of environments evaluated on: " + numEnvironments + 
 				", start from parsed weights: " + startFromParsedWeights + ", consistent partner/s:" + useConsistentPartner);
@@ -223,7 +226,7 @@ public class Engine {
 	 * TODO
 	 */
 	public static void main(String[] args) throws RuntimeException {
-		int numArgs = 10;
+		int numArgs = 11;
 		int[] seeds = new int[args.length-numArgs];
 		for (int i = 0; i < seeds.length; i++) {
 			seeds[i] = Integer.valueOf(args[i+numArgs]);
@@ -235,7 +238,7 @@ public class Engine {
 		}
 		new Engine(Integer.valueOf(args[0]), Boolean.valueOf(args[1]), Double.valueOf(args[2]), 
 			Integer.valueOf(args[3]), Integer.valueOf(args[4]), ActionType.valueOf(args[5]), Boolean.valueOf(args[6]),
-			Integer.valueOf(args[7]), Boolean.valueOf(args[8]),	Boolean.valueOf(args[9]), seeds);
+			Integer.valueOf(args[7]), Boolean.valueOf(args[8]),	Boolean.valueOf(args[9]), Boolean.valueOf(args[9]), seeds);
 		
 	}	
 	
