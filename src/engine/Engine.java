@@ -150,7 +150,7 @@ public class Engine {
 		protectedRiver = protRiv;
 		System.out.println("Parameters:\nGoal-Rationality: " + GOAL_RATIONALITY + ", Action Type: " + ACTION_TYPE.toString() + 
 				", use NM?: " + useNeuromodulation + ", " + seeds[0] + ", number of environments evaluated on: " + numEnvironments + 
-				", start from parsed weights: " + startFromParsedWeights + ", consistent partner/s:" + useConsistentPartner);
+				", start from parsed weights: " + startFromParsedWeights + ", consistent partner/s: " + useConsistentPartner + ", protected river: " + protectedRiver);
 		
 		if (TURN_ON_GRAPH) {
 			bestFitnessGraph = new RealTimeGraph("Best in Population Performance", POPULATION_NUMBER);

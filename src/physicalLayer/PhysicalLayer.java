@@ -220,12 +220,12 @@ public class PhysicalLayer {
 			}
 		}
 		resources = new ArrayList<Resource>();
-		// TODO 5/13 RESOURCES WRONG WAY ROUND
+		// TODO 5/13 RESOURCES WRONG WAY ROUND // fixed, but need to address this
 		// set resources
 		grid[2][16].addObject(new Resource(grid[2][16])); // a
 		grid[16][2].addObject(new Resource(grid[16][2])); // b
-		grid[5][13].addObject(new Resource(grid[13][5])); // a
-		grid[13][5].addObject(new Resource(grid[5][13])); // b
+		grid[13][5].addObject(new Resource(grid[13][5])); // a
+		grid[5][13].addObject(new Resource(grid[5][13])); // b
 		resources.add((Resource)grid[2][16].getObject());
 		resources.add((Resource)grid[16][2].getObject());
 		resources.add((Resource)grid[13][5].getObject());

@@ -88,7 +88,7 @@ public class DecisionNetwork {
 		
 		for(int i = 1; i < networkStructure.length; i++) {
 			weights[i-1] = new double[networkStructure[i-1]][networkStructure[i]];
-			weights[i-1] = randomiseWeights(weights[i-1], true);
+			weights[i-1] = randomiseWeights(weights[i-1], true); 
 		}
 		for (int i = 0; i < neurons.length; i++) {
 			neurons[i] = new int[networkStructure[i+1]]; // neurons start as 0 - standard neurons
