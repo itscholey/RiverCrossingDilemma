@@ -78,10 +78,6 @@ public class Engine {
 	private	  static boolean	useConsistentPartner;
 	/** Filenames for the generational stats for each Agent population. */
 	protected static String[]	GEN_STATS_FILES;
-	/** Filenames for the generation fitnesses for each Agent population. */
-	protected static String[]	FITNESS_FILES;
-	///** Filenames for the generation averages and other stats for each Agent population. */
-	//protected static String[]	AVERAGE_FILES;
 	/** The number of generations that the Agent populations will run for. */
 	protected static	   int			NUM_GENERATIONS 	= 500; 
 	/** The number of iterations the evolutionary process will be run for. Default is 1 (only &gt; 1 if graph is to show averages for many runs). */
@@ -135,7 +131,7 @@ public class Engine {
 	 * TODO
 	 */
 	public Engine(int numAgentPopulations, boolean fromRandom, double goalRationality, int gens, int iters, ActionType at, boolean nm, 
-			int numEnvs, boolean startFromParsedWeights, boolean consPartner, boolean protRiv, int[] seeds) {
+			int numEnvs, boolean startFromParsedWeights, boolean consPartner, int[] seeds) {
 		POPULATION_NUMBER = numAgentPopulations;
 		currentBest = new Agent[POPULATION_NUMBER];
 		agents = new ArrayList<ArrayList<Agent>>();
@@ -147,10 +143,9 @@ public class Engine {
 		useNeuromodulation = nm;
 		numEnvironments = numEnvs;
 		useConsistentPartner = consPartner;
-		protectedRiver = protRiv;
 		System.out.println("Parameters:\nGoal-Rationality: " + GOAL_RATIONALITY + ", Action Type: " + ACTION_TYPE.toString() + 
 				", use NM?: " + useNeuromodulation + ", " + seeds[0] + ", number of environments evaluated on: " + numEnvironments + 
-				", start from parsed weights: " + startFromParsedWeights + ", consistent partner/s: " + useConsistentPartner + ", protected river: " + protectedRiver);
+				", start from parsed weights: " + startFromParsedWeights + ", consistent partner/s: " + useConsistentPartner);
 		
 		if (TURN_ON_GRAPH) {
 			bestFitnessGraph = new RealTimeGraph("Best in Population Performance", POPULATION_NUMBER);
@@ -191,16 +186,12 @@ public class Engine {
 					}		
 				}
 				writeToFile(GEN_STATS_FILES[popNum], prefix);
-				//writeToFile(AVERAGE_FILES[popNum],   "Agent " + popNum + ": " + seeds[popNum] + "\n" + printFilePrefix() + "gen,avg,best,worst,stDev\n");
-				writeToFile(FITNESS_FILES[popNum],   printFilePrefix() + "Generational Fitnesses: Agent " + popNum + ": " + seeds[popNum] + "\ngen,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24\n");
 			}
 			
 			evolve(fromRandom, seeds, startFromParsedWeights, useConsistentPartner);
 			
 			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 				writeToFile(GEN_STATS_FILES[popNum], printFileSuffix());
-				//writeToFile(AVERAGE_FILES[popNum],   printFileSuffix());
-				writeToFile(FITNESS_FILES[popNum], 	 printFileSuffix());
 			}
 			iteration++;
 		}	
@@ -238,7 +229,9 @@ public class Engine {
 		}
 		new Engine(Integer.valueOf(args[0]), Boolean.valueOf(args[1]), Double.valueOf(args[2]), 
 			Integer.valueOf(args[3]), Integer.valueOf(args[4]), ActionType.valueOf(args[5]), Boolean.valueOf(args[6]),
-			Integer.valueOf(args[7]), Boolean.valueOf(args[8]),	Boolean.valueOf(args[9]), Boolean.valueOf(args[9]), seeds);
+			Integer.valueOf(args[7]), Boolean.valueOf(args[8]),	Boolean.valueOf(args[9]), seeds);
+			//Integer.valueOf(args[7]), Boolean.valueOf(args[8]),	Boolean.valueOf(args[9]), Boolean.valueOf(args[9]), seeds);
+			// protRiv should be 10 instead of 9...
 		
 	}	
 	
@@ -267,10 +260,7 @@ public class Engine {
 		}
 		
 		String[] outputs = new String[POPULATION_NUMBER];
-		String[] outputFit = new String[POPULATION_NUMBER];
 		Arrays.fill(outputs, "");
-		Arrays.fill(outputFit, "");
-		//String[] outputAvg = {"",""};
 		model = new PhysicalLayer(ROWS, COLS);
 
 		if (randomise) {
@@ -342,14 +332,6 @@ public class Engine {
 				}
 			}
 		}
-		// else will start from where the population left off. directoryName is still assigned		
-		double[] avgs = new double[POPULATION_NUMBER];
-		for (int out = 0; out < POPULATION_NUMBER; out++) {
-			outputFit[out] += "0," + fitnessArrayToString(out) + "\n";
-			avgs[out] = getAverageFitness(out);
-			//outputAvg[out] += "0," + avgs[out] + "," + getBestFitness(out) + "," + getWorstFitness(out) 
-			//	+ "," + getStandardDeviationFitness(out, avgs[out]) + "\n";
-		}
 		// start evolution
 		for (int gen = 1; gen < NUM_GENERATIONS; gen++) {
 			if ((gen+1) % (5000) == 0) {
@@ -388,13 +370,13 @@ public class Engine {
 				worstIndex[p] = findWorstParent(tournament[p]); // worst index in the tournament;
 			}
 
-			if (TURN_ON_GRAPH) {
-				Double[] fit = new Double[POPULATION_NUMBER];
-				for (int pop = 0; pop < POPULATION_NUMBER; pop++) {
-					fit[pop] = currentBest[pop].getFitness();
-				}
-				bestFitnessGraph.update(fit, iteration, gen);
-			}
+//			if (TURN_ON_GRAPH) {
+//				Double[] fit = new Double[POPULATION_NUMBER];
+//				for (int pop = 0; pop < POPULATION_NUMBER; pop++) {
+//					fit[pop] = currentBest[pop].getFitness();
+//				}
+//				bestFitnessGraph.update(fit, iteration, gen);
+//			}
 			
 			ArrayList<ArrayList<Integer>> parentIndexes = new ArrayList<ArrayList<Integer>>();	
 			for (int i = 0; i < POPULATION_NUMBER; i++) {
@@ -449,70 +431,30 @@ public class Engine {
 				fitnesses[f][indexes[f][worstIndex[f]]] = agents.get(f).get(indexes[f][worstIndex[f]]).getFitness(); // was .evaluate(); 
 			}
 			
-			
-			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
-				outputFit[popNum] += gen + "," + fitnessArrayToString(popNum) + "\n";
-				avgs[popNum] = getAverageFitness(popNum);
-				//outputAvg[popNum] += gen + "," + avgs[popNum] + "," + getBestFitness(popNum) + ","
-				//		+ getWorstFitness(popNum) + "," + getStandardDeviationFitness(popNum, avgs[popNum]) + "\n";
- 			}	
 		    // no need to add a new population - the current one is changed incrementally
 			if ((gen+1) % 125 == 0) {
 		    	for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 			        writeToFile(GEN_STATS_FILES[popNum], outputs[popNum]);
-			        writeToFile(FITNESS_FILES[popNum], outputFit[popNum]);
-			    	//writeToFile(AVERAGE_FILES[popNum], outputAvg[popNum]);
 			        outputs[popNum] = "";
-			        outputFit[popNum] = "";
-			        //outputAvg[popNum] = "";
 		    	}
 		    }
 		} // evolution finished
 		
 	   	for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 	        writeToFile(GEN_STATS_FILES[popNum], outputs[popNum]);
-	        writeToFile(FITNESS_FILES[popNum], outputFit[popNum]);
-	    	//writeToFile(AVERAGE_FILES[popNum], outputAvg[popNum]);
 	        outputs[popNum] = "";
-	        outputFit[popNum] = "";
-	        //outputAvg[popNum] = "";
     	}
 		// print population weights to fitness files
 		for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 			outputs[popNum] += "//\nWeights" + popNum + "------------------------\n";
-			outputFit[popNum] += "//\nWeights" + popNum + "------------------------\n";
-			
 			outputs[popNum] += currentBest[popNum].toString() + "\n";
-
-			for (int popIndex = 0; popIndex < POPULATION_SIZE; popIndex++) {
-				outputFit[popNum] += popIndex + " start\n";
-				
-				outputFit[popNum] += agents.get(popNum).get(popIndex).toString() + "\n";
-				
-				outputFit[popNum] += popIndex + " end\n";
-			}	
 			outputs[popNum] += "\nEnd of Weights" + popNum + "------------------------\n//\nSeed: " + seeds[popNum] + "\n";
-			outputFit[popNum] += "\nEnd of Weights" + popNum + "------------------------\n//\nSeed: " + seeds[popNum] + "\n";
 		}
 		
     	for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 	        writeToFile(GEN_STATS_FILES[popNum], outputs[popNum]);
-	        writeToFile(FITNESS_FILES[popNum], outputFit[popNum]);
-	    	//writeToFile(AVERAGE_FILES[popNum], outputAvg[popNum]);
 	        outputs[popNum] = "";
-	        outputFit[popNum] = "";
-	        //outputAvg[popNum] = "";
     	}
-    	/*
-		environmentView = new View(model, "environment");
-		activityViews = new View[POPULATION_NUMBER];
-
-		for (int i = 0; i < POPULATION_NUMBER; i++) {
-			activityViews[i] = new View(model, "activity", i);
-		}
-		
-		loop(currentBest, true, 0);
-		*/
 	}
 	
 	/**
@@ -906,13 +848,9 @@ public class Engine {
 	 */
 	protected void setupFilenames() {
 		GEN_STATS_FILES = new String[POPULATION_NUMBER];
-		FITNESS_FILES 	= new String[POPULATION_NUMBER];
-		//AVERAGE_FILES 	= new String[POPULATION_NUMBER];
 		
 		for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 			GEN_STATS_FILES[popNum] = directoryName + "/generationStats-agent"  + popNum + "-iter" + iteration + ".csv";
-			FITNESS_FILES[popNum]	= directoryName + "/fitnesses-agent" 	    + popNum + "-iter" + iteration + ".csv";
-			//AVERAGE_FILES[popNum]	= directoryName + "/averages-agent" 		+ popNum + "-iter" + iteration + ".csv";
 		}
 	}
 }
