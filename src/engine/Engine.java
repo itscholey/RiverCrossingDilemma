@@ -238,7 +238,7 @@ public class Engine {
 		}
 		new Engine(Integer.valueOf(args[0]), Boolean.valueOf(args[1]), Double.valueOf(args[2]), 
 			Integer.valueOf(args[3]), Integer.valueOf(args[4]), ActionType.valueOf(args[5]), Boolean.valueOf(args[6]),
-			Integer.valueOf(args[7]), Boolean.valueOf(args[8]),	Boolean.valueOf(args[9]), Boolean.valueOf(args[9]), seeds);
+			Integer.valueOf(args[7]), Boolean.valueOf(args[8]),	Boolean.valueOf(args[9]), Boolean.valueOf(args[10]), seeds);
 		
 	}	
 	
