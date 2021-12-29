@@ -271,7 +271,7 @@ public class Engine {
 					filename = (useNeuromodulation) ? filename + "-nm/" : filename + "/";
 					filename += seeds[popNum] + "/fitnesses-agent0-iter0.csv";
 					
-					WeightsParser wp = new WeightsParser();
+					WeightsParser wp = new WeightsParser(aware[popNum]);
 					ArrayList<DecisionNetwork> parsedAgents = wp.toArray(filename);
 					
 					for (int popIndex = 0; popIndex < POPULATION_SIZE; popIndex++) {
