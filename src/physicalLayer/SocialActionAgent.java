@@ -1,6 +1,7 @@
 package physicalLayer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 
 import deliberativeLayer.DecisionNetwork;
@@ -32,8 +33,8 @@ public class SocialActionAgent extends Agent {
 	 * @param cols The number of columns in the environment.
 	 * @param TODO
 	 */
-	public SocialActionAgent(Cell cell, int rows, int cols, Random rand) {
-		super(cell, rows, cols, rand);
+	public SocialActionAgent(Cell cell, int rows, int cols, Random rand, boolean aware) {
+		super(cell, rows, cols, rand, aware);
 	}
 	
 	/**
@@ -44,8 +45,8 @@ public class SocialActionAgent extends Agent {
 	 * @param cols The number of cols in the environment.
 	 * @param genes A 3D array containing the genes to populate the new agent with.
 	 */
-	public SocialActionAgent(int rows, int cols, double[][][] genes, int[][] nns) {
-		super(rows, cols, genes, nns);
+	public SocialActionAgent(int rows, int cols, double[][][] genes, int[][] nns, boolean aware) {
+		super(rows, cols, genes, nns, aware);
 	}
 	
 	/**
@@ -53,8 +54,8 @@ public class SocialActionAgent extends Agent {
 	 */
 	@Override
 	public Agent produceOffspring(Agent other) {
-		DecisionNetwork os = decisionNetwork.createOffspring(other.getGenes(), other.getNeurons());
-		return new SocialActionAgent(rows, cols, os.getGenes(), os.getNeurons());
+		DecisionNetwork os = decisionNetwork.createOffspring(other.getGenes(), other.getNeurons(), aware);
+		return new SocialActionAgent(rows, cols, os.getGenes(), os.getNeurons(), aware);
 	}
 
 	/**
@@ -68,7 +69,7 @@ public class SocialActionAgent extends Agent {
 	@Override
 	public Agent produceTraditionalOffspring(ArrayList<double[][][]> genes) {
 		double[][][] commonGenes = decisionNetwork.getCommonGenes(genes);
-		SocialActionAgent offspring = new SocialActionAgent(rows, cols, commonGenes, getNeurons()); // agent is created with neurons of current agent
+		SocialActionAgent offspring = new SocialActionAgent(rows, cols, commonGenes, getNeurons(), aware); // agent is created with neurons of current agent
 		return offspring;
 	}
 	
@@ -104,7 +105,9 @@ public class SocialActionAgent extends Agent {
 	public Cell[][] move(double[] status, Cell[][] grid) {
 		// if the goal has not yet been met
 		if (!achievedGoal) {
-			double[] decisionOutput = decisionNetwork.forward(status);			
+			decisionOutput = decisionNetwork.forward(status);		
+			
+				
 			reactiveLayer.updateActivations(decisionOutput, partialBridgeExists, grid);
 			// hold the viable locations for the next move in the surrounding 8 cells
 			ArrayList<Neuron> results = new ArrayList<Neuron>();
@@ -162,9 +165,7 @@ public class SocialActionAgent extends Agent {
 					hasDroppedinRiver = true;
 				}
 				else {
-					if (!Engine.protectedRiver) {
-						cell = grid[newLoc.toArray()[0]][newLoc.toArray()[1]]; // don't move, river as wall if protected
-					}
+					cell = grid[newLoc.toArray()[0]][newLoc.toArray()[1]];
 				}
 			}
 			else {

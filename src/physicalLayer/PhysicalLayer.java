@@ -1,6 +1,7 @@
 package physicalLayer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * A class to model a 2D grid-world environment with different objects placed in it.
@@ -93,10 +94,19 @@ public class PhysicalLayer {
 	 * Simulates one timestep where agents will move if they are alive.
 	 */
 	public void update() {
+
 		for (int i = 0; i < agents.size(); i++) {
+
 			if (agents.get(i).isAlive()) {
+				if (agents.get(i).isAware()) {
+					double[] s = getAgentStatus(i);
+					for (int f = 0; f < agents.get(i).getDecisions().length; f++) {
+						s[f+s.length-agents.get(i).getDecisions().length] = agents.get((i+1)%agents.size()).getDecisions()[f];
+					}
+					agents.get(i).move(s, grid);
+					// TODO this will only work properly with two agents for now
+				}
 				agents.get(i).move(getAgentStatus(i), grid);
-				
 				landscapes.add(i, agents.get(i).getActivationLandscape());
 			}
 		}		

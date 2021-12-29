@@ -52,7 +52,7 @@ public class DecisionNetwork {
 	/** An array that dictates the structure of the network, where each element contains the number of neurons in each layer sequentially.
 	 * The first element dictates the number of inputs, and the last element dictates the number of outputs. All other elements dictate the 
 	 * number of hidden layers and the number of neurons they hold respectively. TODO*/
-	private static int[] networkStructure = {6,8,6,4,3};
+	private int[] networkStructure = {0,8,6,4,3};
 	
 	/** The generated output data. TODO */
 	private double[]	outputData;
@@ -80,8 +80,9 @@ public class DecisionNetwork {
 	 * with weights randomly initialised between -1 and 1.
 	 * TODO if random is null then uses Engine random
 	 */
-	public DecisionNetwork(Random random) {
+	public DecisionNetwork(Random random, boolean aware) {
 		this.random = random;
+		networkStructure[0] = (aware) ? 9 : 6;
 		
 		weights = new double[networkStructure.length-1][][];
 		neurons = new int[networkStructure.length-2][];
@@ -102,9 +103,10 @@ public class DecisionNetwork {
 	 * TODO
 	 * @param weights A 3D array containing the weights in which to populate the new DecisionNetwork.
 	 */
-	public DecisionNetwork(double[][][] w, int[][] n) {
+	public DecisionNetwork(double[][][] w, int[][] n, boolean aware) {
 		weights = w;
 		neurons = n;
+		networkStructure[0] = (aware) ? 9 : 6;
 	}
 
 	/**
@@ -115,7 +117,7 @@ public class DecisionNetwork {
 	 * @param other The weights of the other parent DecisionNetwork.
 	 * @return The new weights of an offspring generated from both parents.
 	 */
-	public DecisionNetwork createOffspring(double[][][] other, int[][] otherNeurons) {
+	public DecisionNetwork createOffspring(double[][][] other, int[][] otherNeurons, boolean aware) {
 		// variable to contain the new offspring's weights
 		double[][][] offspring = new double[networkStructure.length-1][][];
 		int[][] offNeurons = new int[networkStructure.length-2][];
@@ -201,7 +203,7 @@ public class DecisionNetwork {
 				offNeurons[target[0]][target[1]] = (offNeurons[target[0]][target[1]] + 1) % 2;
 			}
 		}
-		return new DecisionNetwork(offspring, offNeurons);
+		return new DecisionNetwork(offspring, offNeurons, aware);
 	}
 
 
@@ -419,7 +421,7 @@ public class DecisionNetwork {
 	 * @param genes A collection of many DecisionNetwork weights, in which to find a representative/traditional state.
 	 * @return A single set of weights in a 3D array, which are a representative/traditional state correlating to the collective population.
 	 */
-	public static double[][][] getCommonGenes(ArrayList<double[][][]> genes) {
+	public double[][][] getCommonGenes(ArrayList<double[][][]> genes) {
 		double[][][] results = new double[networkStructure.length][][];
 		
 		for (int w = 0; w < genes.get(0).length; w++) {
@@ -441,7 +443,7 @@ public class DecisionNetwork {
 	 * TODO 
 	 * @return
 	 */
-	public static int[] getNetworkStructure() {
+	public int[] getNetworkStructure() {
 		return networkStructure;
 	}
 	

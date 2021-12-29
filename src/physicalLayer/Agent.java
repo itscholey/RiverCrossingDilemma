@@ -55,6 +55,10 @@ public abstract class Agent {
 	/** A bridge is built if the number of Stones put onto a Water cell equals the depth of the river. A partial bridge exists
 	 * when this is not equal but is more than 0. */
 	protected static boolean partialBridgeExists = false;
+	
+	protected boolean aware;
+	/** Decision network output from the previous timestep */
+	protected double[] decisionOutput;
 	/** TODO */
 	protected String status = "";
 
@@ -67,13 +71,15 @@ public abstract class Agent {
 	 * @param cols The number of columns in the environment.
 	 * @param TODO
 	 */
-	public Agent(Cell cell, int rows, int cols, Random rand) {
+	public Agent(Cell cell, int rows, int cols, Random rand, boolean aware) {
 		startCell = cell;
 		this.rows = rows;
 		this.cols = cols;
 		this.cell = cell;
+		this.aware = aware;
 		reactiveLayer = new ReactiveLayer(rows, cols);
-		decisionNetwork = new DecisionNetwork(rand);
+		decisionNetwork = new DecisionNetwork(rand, aware);
+		decisionOutput = new double[decisionNetwork.getOutputSize()];
 		isAlive = true;
 		targets = new ArrayList<Resource>();
 		fitness = null;
@@ -89,12 +95,14 @@ public abstract class Agent {
 	 * @param cols The number of columns in the environment.
 	 * @param genes A 3D array containing the genes to populate the new agent with.
 	 */
-	public Agent(int rows, int cols, double[][][] genes, int[][] nns) {
+	public Agent(int rows, int cols, double[][][] genes, int[][] nns, boolean aware) {
+		this.aware = aware;
 		this.rows = rows;
 		this.cols = cols;
 		this.cell = null;
 		reactiveLayer = new ReactiveLayer(rows, cols);
-		decisionNetwork = new DecisionNetwork(genes, nns);
+		decisionNetwork = new DecisionNetwork(genes, nns, aware);
+		decisionOutput = new double[decisionNetwork.getOutputSize()];
 		isAlive = true;
 		targets = new ArrayList<Resource>();
 		fitness = null;
@@ -353,6 +361,14 @@ public abstract class Agent {
 	 */
 	public int getMoves() {
 		return moves;
+	}
+	
+	public double[] getDecisions() {
+		return decisionOutput;
+	}
+	
+	public boolean isAware() {
+		return aware;
 	}
 	
 	/**

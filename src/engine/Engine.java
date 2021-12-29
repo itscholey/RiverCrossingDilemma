@@ -36,12 +36,6 @@ import physicalLayer.PhysicalLayer;
  * @version v1.2
  */
 public class Engine {
-	/** An array of windows - one for each agent performing in the environment - showing the decision-making process of the agent. */
-	protected View[]			activityViews;
-	/** A visualisation of the environment and the agent(s) in it. */
-	protected View 				environmentView;
-	/** A graph visualising the best performance at each generation for the agent(s) in the environment. */
-	protected RealTimeGraph 	bestFitnessGraph;
 	/** A model of the environment in which the agent(s) resides. */
 	protected PhysicalLayer 	model;
 	/** An array of the best agent in each population, updated at each generation. */
@@ -62,32 +56,23 @@ public class Engine {
 	protected long 				totalTime 		= 0;
 	/** The overall time for the run. */
 	protected long 				overallTime 	= 0;
-	/** A counter to track the current iteration (how many times the run is repeated). */
-	protected Integer 			iteration 		= 0;	
 	/** A random variable used to decide the choice of social action. */
 	protected Random 			goalRandom 		= new Random();
 	/** A random variable used throughout the program, seeded either by argument or random. */
 	public    static Random 	random 			= new Random();
 	/** The seed used for the random generator. */
 	public    static int 		SEED;
-	
-	public    static boolean	protectedRiver;
 	/** TODO */
 	public 	  static boolean	useNeuromodulation;
 	private	  static int		numEnvironments;
 	private	  static boolean	useConsistentPartner;
+	private   static boolean[]  aware;
 	/** Filenames for the generational stats for each Agent population. */
 	protected static String[]	GEN_STATS_FILES;
 	/** The number of generations that the Agent populations will run for. */
 	protected static	   int			NUM_GENERATIONS 	= 500; 
-	/** The number of iterations the evolutionary process will be run for. Default is 1 (only &gt; 1 if graph is to show averages for many runs). */
-	protected static 	   int	  		ITERATIONS			= 1;
 	/** The number of Agent populations that exist in the environment (usually 1 or 2 - one for each side of the river). */
 	protected static       int	  		POPULATION_NUMBER	= 1; 
-	/** The percentage of Agent actions that are goal-rational (i.e. 1.0 is fully goal-rational). */
-	protected static 	   double		GOAL_RATIONALITY  	= 1.0;
-	/** The type of social action that an Agent will express (i.e. TRADITIONAL will be a combination of goal-rationality and traditional action). */
-	protected static	   ActionType	ACTION_TYPE		  	= ActionType.GOAL_RATIONAL;
 	/** The maximum number of time-steps that an Agent has to achieve its goals in the environment. */
 	protected static final int 	  		TIME_STEPS 		  	= 500;	
 	/** The number of Agents that will be selected in a tournament during the evolutionary process. */
@@ -98,12 +83,9 @@ public class Engine {
 	protected static final int 	  		ROWS 				= 19;
 	/** The number of columns in the 2D environment. */
 	protected static final int 	  		COLS 				= 19;
-	/** true if visualisations of the environment and decision-making processes should be shown, false otherwise. */
-	protected static final boolean  	TURN_ON_VISUALS   	= false;
-	/** true if graphs of performance should be shown, false otherwise. */
-	protected static final boolean  	TURN_ON_GRAPH	  	= false;
 	/** A container of each of the Agent populations, with a size of POPULATION_NUMBER, and each inner container with a size of POPULATION_SIZE. */
 	protected ArrayList<ArrayList<Agent>> agents;
+	
 	
 	/**
 	 * Creates a new Engine that will generate a River Crossing Dilemma instance and run the evolutionary process for
@@ -130,36 +112,30 @@ public class Engine {
 	 * goal-rational action occuring the remainder of the time.
 	 * TODO
 	 */
-	public Engine(int numAgentPopulations, boolean fromRandom, double goalRationality, int gens, int iters, ActionType at, boolean nm, 
-			int numEnvs, boolean startFromParsedWeights, boolean consPartner, int[] seeds) {
+	public Engine(int numAgentPopulations, boolean fromRandom, int gens, boolean nm, 
+			int numEnvs, boolean startFromParsedWeights, boolean consPartner, boolean aware1, boolean aware2, int[] seeds) {
 		POPULATION_NUMBER = numAgentPopulations;
 		currentBest = new Agent[POPULATION_NUMBER];
 		agents = new ArrayList<ArrayList<Agent>>();
 		fitnesses = new double[POPULATION_NUMBER][POPULATION_SIZE];
-		ACTION_TYPE = at;
-		GOAL_RATIONALITY = goalRationality;
 		NUM_GENERATIONS = gens;
-		ITERATIONS = iters;
 		useNeuromodulation = nm;
 		numEnvironments = numEnvs;
 		useConsistentPartner = consPartner;
-		System.out.println("Parameters:\nGoal-Rationality: " + GOAL_RATIONALITY + ", Action Type: " + ACTION_TYPE.toString() + 
-				", use NM?: " + useNeuromodulation + ", " + seeds[0] + ", number of environments evaluated on: " + numEnvironments + 
-				", start from parsed weights: " + startFromParsedWeights + ", consistent partner/s: " + useConsistentPartner);
-		
-		if (TURN_ON_GRAPH) {
-			bestFitnessGraph = new RealTimeGraph("Best in Population Performance", POPULATION_NUMBER);
-		}
+		aware = new boolean[2];
+		aware[0] = aware1;
+		aware[1] = aware2;
+		System.out.println("Parameters:\nUse NM?: " + useNeuromodulation + ", " + seeds[0] + ", number of environments evaluated on: " + numEnvironments + 
+				", start from parsed weights: " + startFromParsedWeights + ", consistent partner/s: " + useConsistentPartner + ", aware agents: " + aware1 + " " + aware2);
 		
 		if (fromRandom) {
 			newSeed();
-			seeds[0] = SEED;
+			seeds[0] = SEED; // TODO does this only work for one agent?
 		}
 		// keep all files for this run in one directory
 		directoryName = seeds[0] + "";
 				
-		for (int i = 0; i < ITERATIONS; i++) {
-			System.out.println("Starting Iteration " + i);
+			System.out.println("Starting Evolution");
 			setupFilenames();
 			
 			try {
@@ -172,8 +148,9 @@ public class Engine {
 			}
 
 			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
-				String prefix = "Agent " + popNum + ": " + seeds[popNum] + "\n" + printFilePrefix() + "gen,";
-				for (i = 1; i <= numEnvironments; i++) {
+				//boolean aware = (numAware == 0 || (numAware == 1 && popNum == 1)) ? false : true;
+				String prefix = "Agent " + popNum + ": " + seeds[popNum] + ", aware: " + aware[popNum] + "\n" + printFilePrefix() + "gen,";
+				for (int i = 1; i <= numEnvironments; i++) {
 					prefix += "fitness"+i+",movesMade"+i+",isAlive"+i+",hasCarried"+i+",hasMadeBridge"+i+",numStones"+i+",targetsFound"+i+",successful"+i; 
 					if (i == numEnvironments && numEnvironments != 1) {
 						prefix += ",totalFitness";
@@ -193,8 +170,7 @@ public class Engine {
 			for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
 				writeToFile(GEN_STATS_FILES[popNum], printFileSuffix());
 			}
-			iteration++;
-		}	
+		
 	}
 	
 	/**
@@ -217,21 +193,20 @@ public class Engine {
 	 * TODO
 	 */
 	public static void main(String[] args) throws RuntimeException {
-		int numArgs = 11;
+		int numArgs = 9;
 		int[] seeds = new int[args.length-numArgs];
 		for (int i = 0; i < seeds.length; i++) {
 			seeds[i] = Integer.valueOf(args[i+numArgs]);
 			System.out.println(seeds[i]);
 		}
-		if (!Boolean.valueOf(args[9]) && Integer.valueOf(args[0]) == 2) {
+		if (!Boolean.valueOf(args[6]) && Integer.valueOf(args[0]) == 2) {
 			throw new RuntimeException("Cannot have 2 agent populations as well as using a non-consistent partner. Change agent populations to 1 to have a non-consistent partner (Random Together Experiments),"
 					+ " or change to be a consistent partner (Together experiments).");
 		}
-		new Engine(Integer.valueOf(args[0]), Boolean.valueOf(args[1]), Double.valueOf(args[2]), 
-			Integer.valueOf(args[3]), Integer.valueOf(args[4]), ActionType.valueOf(args[5]), Boolean.valueOf(args[6]),
-			Integer.valueOf(args[7]), Boolean.valueOf(args[8]),	Boolean.valueOf(args[9]), seeds);
+		new Engine(Integer.valueOf(args[0]), Boolean.valueOf(args[1]), Integer.valueOf(args[2]), Boolean.valueOf(args[3]),
+			Integer.valueOf(args[4]), Boolean.valueOf(args[5]),	Boolean.valueOf(args[6]), Boolean.valueOf(args[7]), Boolean.valueOf(args[8]), seeds);
 			//Integer.valueOf(args[7]), Boolean.valueOf(args[8]),	Boolean.valueOf(args[9]), Boolean.valueOf(args[9]), seeds);
-			// protRiv should be 10 instead of 9...
+			// protRiv should be 10 instead of 9... (wouldn't make a difference as only run for CE SS
 		
 	}	
 	
@@ -275,7 +250,8 @@ public class Engine {
 					seeds[popNum] = SEED;
 					System.out.println(SEED);
 					agents.add(new ArrayList<Agent>());
-					agents.get(popNum).add(new SocialActionAgent(null, ROWS, COLS, null));
+					//boolean aware = (numAware == 0 || (numAware == 1 && popNum == 1)) ? false : true; // TODO change if more than 2 agents
+					agents.get(popNum).add(new SocialActionAgent(null, ROWS, COLS, null, aware[popNum]));
 					agentsToLoop[popNum] = agents.get(popNum).get(popIndex);
 				}
 				// once initialised, run an instance so the agents get a fitness
@@ -299,7 +275,8 @@ public class Engine {
 					ArrayList<DecisionNetwork> parsedAgents = wp.toArray(filename);
 					
 					for (int popIndex = 0; popIndex < POPULATION_SIZE; popIndex++) {
-						agents.get(popNum).add(new SocialActionAgent(ROWS, COLS, parsedAgents.get(popIndex).getGenes(), parsedAgents.get(popIndex).getNeurons()));
+						//boolean aware = (numAware == 0 || (numAware == 1 && popIndex == 1)) ? false : true; // TODO change if more than 2 agents
+						agents.get(popNum).add(new SocialActionAgent(ROWS, COLS, parsedAgents.get(popIndex).getGenes(), parsedAgents.get(popIndex).getNeurons(), aware[popNum]));
 					}
 					System.out.println("If using a partner, please note the partner will not be initialised from parsed weights and instead is randomly initialised.");
 					// To change this, take out the && popNum==0 condition! As currently for the second seed, it will go to the else clause below and randomly initialise
@@ -314,7 +291,8 @@ public class Engine {
 						random.setSeed(SEED);
 					}
 					for (int popIndex = 0; popIndex < POPULATION_SIZE; popIndex++) {
-						agents.get(popNum).add(new SocialActionAgent(null, ROWS, COLS, null));
+						//boolean aware = (numAware == 0 || (numAware == 1 && popNum == 1)) ? false : true;
+						agents.get(popNum).add(new SocialActionAgent(null, ROWS, COLS, null, aware[popNum]));
 					}
 				}
 			}
@@ -369,14 +347,6 @@ public class Engine {
 				}
 				worstIndex[p] = findWorstParent(tournament[p]); // worst index in the tournament;
 			}
-
-//			if (TURN_ON_GRAPH) {
-//				Double[] fit = new Double[POPULATION_NUMBER];
-//				for (int pop = 0; pop < POPULATION_NUMBER; pop++) {
-//					fit[pop] = currentBest[pop].getFitness();
-//				}
-//				bestFitnessGraph.update(fit, iteration, gen);
-//			}
 			
 			ArrayList<ArrayList<Integer>> parentIndexes = new ArrayList<ArrayList<Integer>>();	
 			for (int i = 0; i < POPULATION_NUMBER; i++) {
@@ -394,31 +364,12 @@ public class Engine {
 				}
 			}
 			
-			// add offspring to replace the worst, update fitnesses
-			if (goalRandom.nextDouble() < GOAL_RATIONALITY) {
-			    for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
-			    	agents.get(popNum).set(indexes[popNum][worstIndex[popNum]],
-			    			agents.get(popNum).get(indexes[popNum][parentIndexes.get(popNum).get(0)]).
-			    				produceOffspring(agents.get(popNum).get(indexes[popNum][parentIndexes.get(popNum).get(1)])));
-			    }
-			}
-			else if (ACTION_TYPE == ActionType.TRADITIONAL) { // traditional
-				ArrayList<double[][][]> commonGenes = new ArrayList<double[][][]>();
-				for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {	
-					for (int popIndex = 0; popIndex < POPULATION_SIZE; popIndex++) {
-						commonGenes.add(agents.get(popNum).get(popIndex).getGenes());
-					}
-					agents.get(popNum).set(indexes[popNum][worstIndex[popNum]], 
-							agents.get(popNum).get(indexes[popNum][parentIndexes.get(popNum).get(0)]).produceTraditionalOffspring(commonGenes));
-				
-				    commonGenes.clear();
-				}
-			}
-			else { // ACTION_TYPE == ActionType.RANDOM				
-				for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
-					agents.get(popNum).set(indexes[popNum][worstIndex[popNum]], new SocialActionAgent(null, ROWS, COLS, null));
-				}
-			}
+		    for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
+		    	agents.get(popNum).set(indexes[popNum][worstIndex[popNum]],
+		    			agents.get(popNum).get(indexes[popNum][parentIndexes.get(popNum).get(0)]).
+		    				produceOffspring(agents.get(popNum).get(indexes[popNum][parentIndexes.get(popNum).get(1)])));
+		    }
+			
 			
 			// loop through newly-made offspring
 			Agent[] agentsToLoop = new Agent[POPULATION_NUMBER];
@@ -583,7 +534,8 @@ public class Engine {
 			
 			if (!useConsistentPartner) { // if non-consistent partner then add
 				a = Arrays.copyOf(a, 2);
-				a[1] = new SocialActionAgent(null, ROWS, COLS, new Random(gen));
+				//boolean aware = (numAware == 0 || numAware == 1) ? false : true;
+				a[1] = new SocialActionAgent(null, ROWS, COLS, new Random(gen), aware[1]);
 			}
 			
 			for (int i = 0; i < a.length; i++) {
@@ -595,15 +547,6 @@ public class Engine {
 			if (model.getAgents().size() == 2) {
 				model.getAgents().get(1).setStartCell(model.getCell(ROWS-1, COLS-1));
 				//model.getAgents().get(1).setStartCell(model.getCell(ROWS-1, 0));
-			}
-			
-			if (TURN_ON_VISUALS) {
-				environmentView = new View(model, "environment");
-				activityViews = new View[POPULATION_NUMBER];
-		
-				for (int i = 0; i < POPULATION_NUMBER; i++) {
-					activityViews[i] = new View(model, "activity", i);
-				}
 			}
 			
 			while (count < TIME_STEPS && running) {
@@ -663,7 +606,8 @@ public class Engine {
 				if (!useConsistentPartner) {
 					a = Arrays.copyOf(a, 2);
 					// this works with 2, 3 and 4 environments
-					a[1] = (eval == 1) ? new SocialActionAgent(null, ROWS, COLS, new Random(gen)) : new SocialActionAgent(null, ROWS, COLS, new Random(gen+NUM_GENERATIONS));
+					//boolean aware = (numAware == 0 || numAware == 1) ? false : true;
+					a[1] = (eval == 1) ? new SocialActionAgent(null, ROWS, COLS, new Random(gen), aware[1]) : new SocialActionAgent(null, ROWS, COLS, new Random(gen+NUM_GENERATIONS), aware[1]);
 				}
 				else { // use consistent partner, but if eval4 choose a different partner for evals 2 and 4
 					a = Arrays.copyOf(a, 2);
@@ -684,15 +628,6 @@ public class Engine {
 			model.getAgents().get(0).setStartCell(model.getCell(0, 0));
 			if (model.getAgents().size() == 2) {
 				model.getAgents().get(1).setStartCell(model.getCell(ROWS-1, COLS-1));
-			}
-			
-			if (TURN_ON_VISUALS) {
-				environmentView = new View(model, "environment");
-				activityViews = new View[POPULATION_NUMBER];
-		
-				for (int i = 0; i < POPULATION_NUMBER; i++) {
-					activityViews[i] = new View(model, "activity", i);
-				}
 			}
 			
 			while (count < TIME_STEPS && running) {
@@ -745,12 +680,6 @@ public class Engine {
 			if (model.agentAliveStatus(i)) {
 				atLeastOneAgentAlive = model.agentAliveStatus(i);
 			}
-			if (showViews) {
-				activityViews[i].update(model);
-			}
-		}
-		if (showViews) {
-			environmentView.update(model);
 		}
 		
 		if (!atLeastOneAgentAlive) {
@@ -787,9 +716,8 @@ public class Engine {
 		startTime = System.nanoTime();
 		generationTime = startTime;
 		
-		output = "Created: " + LocalDateTime.now() + "; Seed: " + SEED + "\nIteration " + iteration + "\n";
+		output = "Created: " + LocalDateTime.now() + "; Seed: " + SEED + "\n";
 		//generationFitness = new RealTimeGraph("Agent Performance, Run " + i);
-		output += "//\nRun: " + iteration + "----------------\n";
 		return output;
 	}
 	
@@ -803,7 +731,7 @@ public class Engine {
 		String output = "";
 		elapsedTime = System.nanoTime() - generationTime;
 		output += "Elapsed time: " + elapsedTime/1000000000.0 + " seconds";
-		output += "//\nEnd of Run " + iteration + "------------------------\n//\n";
+		output += "//\nEnd of Run ------------------------\n//\n";
 		
 		generationTime = System.nanoTime();
 		
@@ -850,7 +778,7 @@ public class Engine {
 		GEN_STATS_FILES = new String[POPULATION_NUMBER];
 		
 		for (int popNum = 0; popNum < POPULATION_NUMBER; popNum++) {
-			GEN_STATS_FILES[popNum] = directoryName + "/generationStats-agent"  + popNum + "-iter" + iteration + ".csv";
+			GEN_STATS_FILES[popNum] = directoryName + "/generationStats-agent"  + popNum + ".csv";
 		}
 	}
 }
