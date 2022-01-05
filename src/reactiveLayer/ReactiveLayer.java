@@ -48,7 +48,7 @@ public class ReactiveLayer {
 	 * 	<li>output = 1, +IOTA</li>
 	 * 	<li>output = -1, -IOTA</li>
 	 * 	<li>output = 0, no change</li>
-	 * 	<li>agent, -IOTA (not yet implemented, is 0)</li>
+	 * 	<li>agent, -IOTA (not yet implemented, is 0)</li> TODO
 	 * </ul>
 	 * 
 	 * 
